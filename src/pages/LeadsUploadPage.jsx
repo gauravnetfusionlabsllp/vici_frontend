@@ -381,6 +381,7 @@ export default function LeadsUploadPage() {
         field: "campaign_id",
         minWidth: 130,
         cellClass: "font-mono text-slate-300",
+        filter: true
       },
       {
         headerName: "ENTRY DATE",

@@ -10,7 +10,7 @@ export const VicidialPopupProvider = ({ children }) => {
   const openPopup = () => {
     if (!vicidialPopupRef.current || vicidialPopupRef.current.closed) {
       vicidialPopupRef.current = window.open(
-        "http://192.168.15.165/agc/vicidial.php",
+        "http://192.168.15.165:5165/agc/vicidial.php",
         "VICIDIAL_POPUP",
         "width=1100,height=750,left=100,top=50,resizable=yes,scrollbars=yes"
       );
