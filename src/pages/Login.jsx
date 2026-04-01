@@ -20,7 +20,7 @@ export default function Login() {
   const [debouncedUsername, setDebouncedUsername] = useState("");
   // ✅ only fetch campaigns when agent
   const { data: campaingList, isLoading: campaingListLoading } = useGetCampaignsQuery(debouncedUsername, {
-    skip: role !== "agent",
+    skip: role !== "agent" || !debouncedUsername,
   });
 
   const [form, setForm] = useState({
@@ -138,7 +138,7 @@ export default function Login() {
   const campaignDisabled =
     role !== "agent" ||
     campaingListLoading ||
-    !campaingList?.data?.length;
+    !campaingList?.data?.length||!debouncedUsername;
 
   const loginDisabled =
     isLoading ||
