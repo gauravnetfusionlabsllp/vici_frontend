@@ -27,6 +27,7 @@ const addParamsToUrl = (url, paramsObj) => {
 const baseQueryWithSession = async (args, api, extraOptions) => {
 
   const withDate = extraOptions?.withDate === true;
+    const withCampaign = extraOptions?.withCampaign === true; 
   const req = typeof args === "string" ? { url: args } : { ...args };
   if (withDate) {
     // read date range from redux
@@ -43,6 +44,12 @@ console.log('Adding date params to request:', params);
       console.log('Modified request URL with date params:', req.url);
     }
   }
+  if (withCampaign) { // 👈 new block
+    const { campaignId } = api.getState().campaignFilter || {};
+    if (campaignId) {
+      req.url = addParamsToUrl(req.url, { campaign_id: campaignId });
+    }
+  }
   const result = await baseQuery(req, api, extraOptions);
 
   
@@ -55,7 +62,7 @@ console.log('Adding date params to request:', params);
 export const dashboardApi = createApi({
   reducerPath: 'dashboardApi',
   baseQuery: baseQueryWithSession,
-  tagTypes: ['Dashboard', "Leads","DATE_FILTERED"],
+  tagTypes: ['Dashboard', "Leads","DATE_FILTERED", 'CAMPAIGN_FILTERED'],
   endpoints: (builder) => ({
 
     //   getOverview: builder.query({
@@ -78,11 +85,13 @@ export const dashboardApi = createApi({
     }),
     getTotalDialsToday: builder.query({
       query: () => '/totaldialstoday',
-      providesTags: ['Dashboard',"DATE_FILTERED"],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
       keepUnusedDataFor: 60,
       extraOptions: {
         maxRetries: 3,
-        withDate: true
+        withDate: true,
+        withCampaign: true 
+
       },
 
     }),
