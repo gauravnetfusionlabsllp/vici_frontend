@@ -3,7 +3,7 @@ import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
 import { useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { resetCampaignId, selectCampaignId, setCampaignId } from '../slices/campaignFilterSlice';
+import { resetCampaignId, selectCampaignId, setCampaignId } from '../slices/campaignAndUsernameFilterSlice';
 import { dashboardApi } from '../services/dashboardApi';
 
 export function CampaignPerformance({ data }) {

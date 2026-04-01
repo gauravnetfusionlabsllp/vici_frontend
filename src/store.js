@@ -15,7 +15,7 @@ import authReducer from "./slices/authSlice";
 import dialReducer from "./slices/dialSlice";
 import callReducer from "./slices/callSlice";
 import dateFilterReducer from "./slices/dateFilterSlice";
-import campaignFilterReducer from "./slices/campaignFilterSlice";
+import campaignAndUsernameFilterReducer from "./slices/campaignAndUsernameFilterSlice";
 
 export const store = configureStore({
   reducer: {
@@ -25,7 +25,7 @@ export const store = configureStore({
     dial: dialReducer,
     call: callReducer,
     dateFilter: dateFilterReducer,
-    campaignFilter: campaignFilterReducer,
+    campaignAndUsernameFilter: campaignAndUsernameFilterReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(dashboardApi.middleware),

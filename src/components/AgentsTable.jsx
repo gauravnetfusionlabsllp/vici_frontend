@@ -1,8 +1,10 @@
 import { Users } from "lucide-react";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
-import { useMemo } from "react";
-import { useGetAgentsProductivityQuery } from "../services/dashboardApi";
+import { useCallback, useMemo } from "react";
+import { dashboardApi, useGetAgentsProductivityQuery } from "../services/dashboardApi";
+import { resetUsername, selectUsername, setUsername } from "../slices/campaignAndUsernameFilterSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -13,7 +15,9 @@ export function AgentsTable() {
       pollingInterval: 30000,
       skipPollingIfUnfocused: true,
     });
+    const dispatch = useDispatch();
   const rowData = data?.data || [];
+  const activeUsername = useSelector(selectUsername);
   const hhmmssToMinutes = (time) => {
     if (!time) return 0;
     const [hh, mm, ss] = time.split(":").map(Number);
@@ -93,6 +97,36 @@ export function AgentsTable() {
     </div>
   );
 };
+const handleUsernameClick = useCallback((username) => {
+    if (activeUsername === username) {
+      // clicking same id → deselect/clear
+      dispatch(resetUsername());
+    } else {
+      dispatch(setUsername(username));
+    }
+    dispatch(dashboardApi.util.invalidateTags(["USERNAME_FILTERED"]));
+  }, [dispatch, activeUsername]);
+  const CampaignIdRenderer = useCallback((params) => {
+    const selectedUsername = params.value;
+    const isActive = selectedUsername === activeUsername;
+
+    return (
+      <span
+        onClick={() => handleUsernameClick(selectedUsername)}
+        className={`
+          cursor-pointer font-mono text-xs px-2 py-0.5 rounded transition-all
+          ${isActive
+            ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50"
+            : "text-slate-300 hover:text-emerald-400 hover:underline"
+          }
+        `}
+        title={isActive ? "Click to deselect" : "Click to filter by this username"}
+      >
+        {isActive && <span className="mr-1">▶</span>}
+        {selectedUsername}
+      </span>
+    );
+  }, [activeUsername, handleUsernameClick]);
   const columnDefs = useMemo(
     () => [
       {
@@ -108,6 +142,7 @@ export function AgentsTable() {
         minWidth: 100,
         maxWidth: 100,
         cellClass: "font-mono text-slate-300",
+        cellRenderer: CampaignIdRenderer,
       },
       {
         headerName: "USER NAME",
@@ -115,6 +150,7 @@ export function AgentsTable() {
         minWidth: 170,
         maxWidth: 180,
         cellClass: "font-mono text-slate-300",
+        
       },
       {
         headerName: "STATUS",
@@ -167,7 +203,7 @@ export function AgentsTable() {
         cellClass: "font-mono text-slate-300",
       },
     ],
-    []
+    [CampaignIdRenderer]
   );
   const defaultColDef = useMemo(
     () => ({
@@ -204,6 +240,22 @@ export function AgentsTable() {
           <Users className="w-4 h-4 text-emerald-400" />
           Agents Productivity
         </h3>
+
+        {activeUsername && (
+                  <div className="flex items-center gap-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded-full">
+                    <span>Filtered: <strong>{activeUsername}</strong></span>
+                    <button
+                      onClick={() => {
+                        dispatch(resetUsername());
+                        dispatch(dashboardApi.util.invalidateTags(["USERNAME_FILTERED"]));
+                      }}
+                      className="hover:text-white transition-colors ml-1"
+                      title="Clear filter"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
       </div>
 
       {/* Grid */}

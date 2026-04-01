@@ -25,9 +25,9 @@ const addParamsToUrl = (url, paramsObj) => {
 
 // ✅ Interceptor
 const baseQueryWithSession = async (args, api, extraOptions) => {
-
   const withDate = extraOptions?.withDate === true;
     const withCampaign = extraOptions?.withCampaign === true; 
+    const withUsername = extraOptions?.withUsername === true; 
   const req = typeof args === "string" ? { url: args } : { ...args };
   if (withDate) {
     // read date range from redux
@@ -45,9 +45,16 @@ console.log('Adding date params to request:', params);
     }
   }
   if (withCampaign) { // 👈 new block
-    const { campaignId } = api.getState().campaignFilter || {};
+    const { campaignId } = api.getState().campaignAndUsernameFilter || {};
     if (campaignId) {
       req.url = addParamsToUrl(req.url, { campaign_id: campaignId });
+    }
+    
+  }
+  if (withUsername) { // 👈 new block
+    const { username } = api.getState().campaignAndUsernameFilter || {};
+    if (username) {
+      req.url = addParamsToUrl(req.url, { user_id: username });
     }
   }
   const result = await baseQuery(req, api, extraOptions);
@@ -62,7 +69,7 @@ console.log('Adding date params to request:', params);
 export const dashboardApi = createApi({
   reducerPath: 'dashboardApi',
   baseQuery: baseQueryWithSession,
-  tagTypes: ['Dashboard', "Leads","DATE_FILTERED",'CAMPAIGN_FILTERED'],
+  tagTypes: ['Dashboard', "Leads","DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
   endpoints: (builder) => ({
 
     //   getOverview: builder.query({
@@ -85,13 +92,13 @@ export const dashboardApi = createApi({
     }),
     getTotalDialsToday: builder.query({
       query: () => '/totaldialstoday',
-      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
       keepUnusedDataFor: 60,
       extraOptions: {
         maxRetries: 3,
         withDate: true,
-        withCampaign: true 
-
+        withCampaign: true ,
+        withUsername: true
       },
 
     }),
@@ -121,11 +128,12 @@ export const dashboardApi = createApi({
 
     getCallStatus: builder.query({
       query: () => '/getcallbystatus',
-      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
       extraOptions: {
         maxRetries: 3,
         withDate: true,
-        withCampaign: true 
+        withCampaign: true , 
+        withUsername: true
 
       },
     }),
@@ -147,20 +155,21 @@ export const dashboardApi = createApi({
 
     getCampaignPerformance: builder.query({
       query: () => '/campaignperformance',
-      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
+      providesTags: ['Dashboard',"DATE_FILTERED",'USERNAME_FILTERED'],
       extraOptions: {
         maxRetries: 3,
         withDate: true,
-        withCampaign: false 
+        withUsername: true
       },
     }),
     getDialerPerformance: builder.query({
       query: () => '/dialerperformance',
-      providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED'],
+      providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
       extraOptions: {
         maxRetries: 3,
         withDate: true,
-        withCampaign: true
+        withCampaign: true,
+        withUsername: true
       },
     }),
     getHourlyPerformance: builder.query({
@@ -177,11 +186,12 @@ export const dashboardApi = createApi({
     }),
     getLeadfunnel: builder.query({
       query: () => "/leadfunnel",
-      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
       extraOptions: {
         maxRetries: 3,
         withDate: true,
-        withCampaign: true
+        withCampaign: true,
+        withUsername: true
       },
       
     }),
