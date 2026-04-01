@@ -62,7 +62,7 @@ console.log('Adding date params to request:', params);
 export const dashboardApi = createApi({
   reducerPath: 'dashboardApi',
   baseQuery: baseQueryWithSession,
-  tagTypes: ['Dashboard', "Leads","DATE_FILTERED", 'CAMPAIGN_FILTERED'],
+  tagTypes: ['Dashboard', "Leads","DATE_FILTERED",'CAMPAIGN_FILTERED'],
   endpoints: (builder) => ({
 
     //   getOverview: builder.query({
@@ -121,7 +121,13 @@ export const dashboardApi = createApi({
 
     getCallStatus: builder.query({
       query: () => '/getcallbystatus',
-      providesTags: ['Dashboard'],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
+      extraOptions: {
+        maxRetries: 3,
+        withDate: true,
+        withCampaign: true 
+
+      },
     }),
 
     getAllData: builder.query({
@@ -131,24 +137,31 @@ export const dashboardApi = createApi({
 
     getAgentsProductivity: builder.query({
       query: () => '/agentsproductivity',
-      providesTags: ['Dashboard',"DATE_FILTERED"],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
       extraOptions: {
         maxRetries: 3,
-        withDate: true
+        withDate: true,
+         withCampaign: true
       },
     }),
 
     getCampaignPerformance: builder.query({
       query: () => '/campaignperformance',
-      providesTags: ['Dashboard',"DATE_FILTERED"],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
       extraOptions: {
         maxRetries: 3,
-        withDate: true
+        withDate: true,
+        withCampaign: false 
       },
     }),
     getDialerPerformance: builder.query({
       query: () => '/dialerperformance',
-      providesTags: ['Dashboard'],
+      providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED'],
+      extraOptions: {
+        maxRetries: 3,
+        withDate: true,
+        withCampaign: true
+      },
     }),
     getHourlyPerformance: builder.query({
       query: () => '/hourlyperformance',
@@ -164,10 +177,11 @@ export const dashboardApi = createApi({
     }),
     getLeadfunnel: builder.query({
       query: () => "/leadfunnel",
-      providesTags: ['Dashboard',"DATE_FILTERED"],
+      providesTags: ['Dashboard',"DATE_FILTERED",'CAMPAIGN_FILTERED'],
       extraOptions: {
         maxRetries: 3,
-        withDate: true
+        withDate: true,
+        withCampaign: true
       },
       
     }),
@@ -233,8 +247,11 @@ export const dashboardApi = createApi({
       query: () => "/usertimeline",
     }),
     getCampaigns: builder.query({
-      query: () => "/campaigns",
-    }),
+  query: (username) => ({
+    url: "/campaigns",
+    params: username ? { username } : {},
+  }),
+}),
     deleteLead: builder.mutation({
       // adjust this URL to match your backend
       // option A: delete by lead_id

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState ,useEffect} from "react";
 import { Briefcase, ChevronDown, Loader2, Lock, User, Shield, Headset } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGetCampaignsQuery, useLoginMutation } from "../services/dashboardApi";
@@ -17,8 +17,9 @@ export default function Login() {
   const from = location.state?.from?.pathname;
   const [login, { isLoading }] = useLoginMutation();
   const { openPopup } = useVicidialPopup();
+  const [debouncedUsername, setDebouncedUsername] = useState("");
   // ✅ only fetch campaigns when agent
-  const { data: campaingList, isLoading: campaingListLoading } = useGetCampaignsQuery(undefined, {
+  const { data: campaingList, isLoading: campaingListLoading } = useGetCampaignsQuery(debouncedUsername, {
     skip: role !== "agent",
   });
 
@@ -52,6 +53,13 @@ export default function Login() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+  useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedUsername(form.username);
+  }, 500); // 500ms debounce
+
+  return () => clearTimeout(timer);
+}, [form.username]);
 
   // ✅ when role changes, clear campaign + close dropdown
   const handleRoleChange = (newRole) => {
