@@ -1,7 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { showSessionPopup } from '../slices/sessionSlice.js';
 
-
+let isSessionExpired = false;
+export const getSessionExpired = () => isSessionExpired;
+export const setSessionExpired = (val) => {
+  isSessionExpired = val;
+};
 const baseQuery = fetchBaseQuery({
   baseUrl: "http://192.168.15.61:8000",
   prepareHeaders: (headers) => {
@@ -25,6 +29,11 @@ const addParamsToUrl = (url, paramsObj) => {
 
 // ✅ Interceptor
 const baseQueryWithSession = async (args, api, extraOptions) => {
+  const isRefreshCall =
+    typeof args === "object" && args.url === "/refresh";
+  if (getSessionExpired() && !isRefreshCall) {
+    return { error: { status: 401, data: "Session paused" } };
+  }
   const withDate = extraOptions?.withDate === true;
     const withCampaign = extraOptions?.withCampaign === true; 
     const withUsername = extraOptions?.withUsername === true; 
@@ -61,6 +70,7 @@ console.log('Adding date params to request:', params);
 
   
   if (result?.error?.status === 401) {
+     setSessionExpired(true);
     api.dispatch(showSessionPopup());
   }
 
@@ -86,6 +96,13 @@ export const dashboardApi = createApi({
     login: builder.mutation({
       query: (body) => ({
         url: "/login",
+        method: "POST",
+        body,
+      }),
+    }),
+    refresh: builder.mutation({
+      query: (body) => ({
+        url: "/refresh",
         method: "POST",
         body,
       }),
@@ -291,6 +308,7 @@ export const {
   // useGetAgentsOnCallsQuery,
   // useGetAgentPerformanceQuery,
   useLoginMutation,
+  useRefreshMutation,
   useGetCallStatusQuery,
   useGetAllDataQuery,
   useGetTotalDialsTodayQuery,

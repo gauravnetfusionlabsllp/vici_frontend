@@ -30,3 +30,7 @@ Check PM2 status:
 npx pm2 list
 View logs (if needed):
 npx pm2 logs frontend
+
+if nothing in the pm2 list
+start new frontend:
+npx pm2 serve dist 5000 --spa --name frontend

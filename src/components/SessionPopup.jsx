@@ -1,27 +1,42 @@
 import { useDispatch, useSelector } from "react-redux";
 import { Loader2, LogOut, RefreshCw } from "lucide-react";
 import { hideSessionPopup, setLoading } from "../slices/sessionSlice";
-import { useLoginMutation } from "../services/dashboardApi";
+import { dashboardApi, setSessionExpired, useLoginMutation, useRefreshMutation } from "../services/dashboardApi";
 import { useNavigate } from "react-router-dom";
 import { clearUser } from "../slices/authSlice";
 
 export default function SessionPopup() {
   const dispatch = useDispatch();
   const { expired, loading } = useSelector((s) => s.session);
-  const [login] = useLoginMutation();
+  const [refresh] = useRefreshMutation();
   const navigate = useNavigate();
   if (!expired) return null;
 
   const handleContinue = async () => {
-    const creds = JSON.parse(sessionStorage.getItem("vicidial_auth") || "{}");
-    if (!creds.username) return;
+    console.log("Attempting to refresh session...");
+   const refresh_token = JSON.parse(localStorage.getItem("user"))?.refresh_token;
 
     try {
       dispatch(setLoading(true));
-      const res = await login(creds).unwrap();
-      localStorage.setItem("user", JSON.stringify(res));
+      const res = await refresh({ refresh_token }).unwrap();
+
+    // update token
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+    console.log("Refresh successful, new token:", res.access_token,user);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...user,
+        access_token: res.access_token,
+      })
+    );
+
+    // ✅ resume API calls
+    setSessionExpired(false);
+     dispatch(dashboardApi.util.resetApiState());
       dispatch(hideSessionPopup());
     } catch (err) {
+      conosle.error("Refresh failed:", err);
       handleLogout();
     } finally {
       dispatch(setLoading(false));
@@ -29,6 +44,7 @@ export default function SessionPopup() {
   };
 
   const handleLogout = () => {
+    setSessionExpired(false);
     dispatch(clearUser())
     dispatch(hideSessionPopup());
     navigate("/login", { replace: true });

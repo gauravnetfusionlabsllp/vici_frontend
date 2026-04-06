@@ -114,15 +114,15 @@ export default function Login() {
         openPopup();
       }
       // ✅ store auth details (role always, campaign only for agent)
-      sessionStorage.setItem(
-        "vicidial_auth",
-        JSON.stringify({
-          username: form.username,
-          password: form.password,
-          role,
-          ...(role === "agent" ? selectedCampaign : {}),
-        })
-      );
+      // sessionStorage.setItem(
+      //   "vicidial_auth",
+      //   JSON.stringify({
+      //     username: form.username,
+      //     password: form.password,
+      //     role,
+      //     ...(role === "agent" ? selectedCampaign : {}),
+      //   })
+      // );
 
       localStorage.setItem("user", JSON.stringify(res));
       dispatch(setUser(res));
