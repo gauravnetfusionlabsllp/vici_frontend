@@ -4,11 +4,13 @@ import { hideSessionPopup, setLoading } from "../slices/sessionSlice";
 import { dashboardApi, setSessionExpired, useLoginMutation, useRefreshMutation } from "../services/dashboardApi";
 import { useNavigate } from "react-router-dom";
 import { clearUser } from "../slices/authSlice";
+import { useVicidialPopup } from "../context/VicidialPopupContext";
 
 export default function SessionPopup() {
   const dispatch = useDispatch();
   const { expired, loading } = useSelector((s) => s.session);
   const [refresh] = useRefreshMutation();
+  const { closePopup } = useVicidialPopup();
   const navigate = useNavigate();
   if (!expired) return null;
 
@@ -45,6 +47,7 @@ export default function SessionPopup() {
 
   const handleLogout = () => {
     setSessionExpired(false);
+    closePopup();
     dispatch(clearUser())
     dispatch(hideSessionPopup());
     navigate("/login", { replace: true });
