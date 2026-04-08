@@ -133,7 +133,7 @@ function HeatmapChart({data,isLoading}) {
 
       <ReactECharts
         option={option}
-        style={{ height: Math.max(200, rowHeight * metrics.length + 50), width: "100%" }}
+        style={{ height: Math.max(180, rowHeight * metrics.length + 50), width: "100%" }}
         opts={{ renderer: "canvas" }}
         notMerge={true}
         lazyUpdate={true}

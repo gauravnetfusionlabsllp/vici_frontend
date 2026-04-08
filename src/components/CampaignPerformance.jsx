@@ -170,7 +170,7 @@ export function CampaignPerformance({ data }) {
         )}
       </div>
 
-      <div className="h-[150px] border border-border rounded-sm shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
+      <div className="h-[200px] border border-border rounded-sm shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}

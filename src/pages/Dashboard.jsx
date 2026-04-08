@@ -80,15 +80,15 @@ export default function Dashboard() {
 <TotalDialsToday/>
       {/* TABLES STACK NATURALLY ON MOBILE */}
       <div className="flex flex-col lg:flex-row gap-4">
-    <div className="lg:w-1/3">
+    <div className="lg:w-1/3 h-100% ">
       <DialerPerformance data={dialerPerformance} graphData={graphData} isLoading={dialerPerformanceLoading} isGraphDataLoading={graphDataLoading}/>
     </div>
-    <div className="lg:w-2/3">
+    <div className="lg:w-2/3 h-100%">
       <AgentsTable />
     </div>
   </div>
       <CampaignPerformance data={campaignPerformance}  />
-      <ComplianceStats allData={ComplianceData?.data[0]} />
+      {/* <ComplianceStats allData={ComplianceData?.data[0]} /> */}
     </div>
 
     {/* RIGHT COLUMN */}
@@ -107,7 +107,7 @@ export default function Dashboard() {
 
         <CallStatusChart callStatus={callStatus} CallStatusLoading={CallStatusLoading}/>
 
-       {callStatus && !CallStatusLoading &&( <div className="mt-4 flex justify-between text-sm border-t border-slate-700 p-2 pb-0">
+       {callStatus && !CallStatusLoading &&( <div className="mt-0 flex justify-between text-sm border-t border-slate-700 p-2 pb-0">
           <span className="text-slate-300">Total Calls</span>
           <span className="font-mono text-white font-semibold">
             {callStatus.data[0].Totalcall || 0}

@@ -30,7 +30,7 @@ export function OverviewCard({
     { value: 280 },
   ];
   return (
-    <div className={`h-[7rem] min-w-[11rem] flex flex-col border border-border rounded-md bg-card/60 shadow-[0_8px_30px_rgba(0,0,0,0.45)]`}>
+    <div className={`h-[7rem] min-w-[12.5rem] flex flex-col border border-border rounded-md bg-card/60 shadow-[0_8px_30px_rgba(0,0,0,0.45)]`}>
      
           <div className="p-1 m-2">
             <p className="text-xs mt-1 font-semibold text-slate-300 uppercase text-nowrap display-block">

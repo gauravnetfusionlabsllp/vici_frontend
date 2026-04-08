@@ -143,9 +143,9 @@ export function LeadFunnel() {
     </p>
 </div>
 
-      <div className="relative flex flex-col items-center gap-0 mt-4 px-4">
+      <div className="relative flex flex-col items-center gap-0 mt-2 px-4">
         {stages.map((stage, index) => (
-          <div key={stage.label} className="relative w-full flex items-center justify-center mb-3">
+          <div key={stage.label} className="relative w-full flex items-center justify-center mb-2">
             {/* Left Label */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 text-left w-20">
               <div className="text-xs uppercase tracking-wider">{stage.label}</div>
@@ -153,7 +153,7 @@ export function LeadFunnel() {
             </div>
 
             {/* Funnel Stage */}
-            <div className="relative flex items-center justify-center h-14" style={{ width: `${stage.width}%` }}>
+            <div className="relative flex items-center justify-center h-12" style={{ width: `${stage.width}%` }}>
               {/* Trapezoid Shape using clip-path */}
               <div
                 className="absolute inset-0 bg-gradient-to-b from-[#1e3a5f] to-[#0d2847] border-t  border-b border-slate-600/40 "
@@ -197,13 +197,13 @@ export function LeadFunnel() {
         ))}
 
         {/* Bottom Icon */}
-        <div className="mt-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+        {/* <div className="mt-0 flex items-center gap-3">
+          <div className="w-20 h-4 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center">
+            <div className="w-10 h-2 rounded-full bg-slate-700 flex items-center justify-center">
+              <div className="w-4 h-1 bg-cyan-400 rounded-full" />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   )

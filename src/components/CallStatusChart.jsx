@@ -43,12 +43,12 @@ export function CallStatusChart({ callStatus ,CallStatusLoading = true}) {
 
   const hasData = data.length > 0;
 return CallStatusLoading ? (
-    <div className="flex items-center justify-center h-[220px]">
+    <div className="flex items-center justify-center h-[170px]">
       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
     </div>
   ) :
    (
-    <div className="relative w-full h-[200px]">
+    <div className="relative w-full h-[170px]">
       {/* CENTER LABEL */}
       {/* <div className="absolute inset-5 mb-14 flex flex-col items-center justify-center pointer-events-none z-10">
         <div className="text-3xl font-bold font-mono text-white">
@@ -71,8 +71,8 @@ return CallStatusLoading ? (
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={48}
-            outerRadius={72}
+            innerRadius={38}
+            outerRadius={62}
             paddingAngle={3}
             dataKey="value"
             stroke="none"
@@ -88,7 +88,8 @@ return CallStatusLoading ? (
           <Tooltip content={<CustomTooltip />} />
           <Legend
             verticalAlign="bottom"
-            iconType="circle"
+            
+            iconType="square"
             formatter={(value, props) => {
               const pct = total
                 ? ((props.payload.value / total) * 100).toFixed(1)

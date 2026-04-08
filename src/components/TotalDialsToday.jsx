@@ -42,7 +42,7 @@ const TotalDialsToday = ({ overview }) => {
     { label: 'Connection Rate(%)', value: connection_rate_pct, icon: Clock, trend: 'stable', color: 'slate' },
     { label: 'Total Talk Time', value: total_talk_time, icon: Users, trend: 'total seats', color: 'blue' },
     { label: 'Avg Talk Time Sec', value: avg_talk_time_sec, icon: Headphones, trend: 'handling customers', color: 'blue' },
-    { label: 'Leads Contacted', value: leads_connected, icon: Users, trend: 'idle & ready', color: 'blue' },
+    // { label: 'Leads Contacted', value: leads_connected, icon: Users, trend: 'idle & ready', color: 'blue' },
   ];
   if (isLoading) return (
     <div className="flex items-center justify-center h-[220px]">
