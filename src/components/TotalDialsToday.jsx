@@ -34,8 +34,6 @@ const TotalDialsToday = ({ overview }) => {
 
   } = TodaysDialsData?.data?.[0] || {};
 
-  // console.log('TodaysDialsData', TodaysDialsData, call_date);
-
   // Define KPIs dynamically
   const kpis = [
     // { label: 'Call Date', value: call_date, icon: Phone, trend: '+3.2%', color: 'blue' }, // optional, if needed

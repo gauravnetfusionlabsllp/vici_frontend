@@ -141,7 +141,7 @@ export default function CallPage() {
    * We'll wait for uniqueid AFTER hangup OR during call.
    */
   useEffect(() => {
-    console.log({inCallLeadsUploadPage: inCall})
+   
     if (logData?.inCall) return;
     setCallState(CALL_STATE.DISPO); 
     setShowDispo(true);
@@ -153,7 +153,7 @@ export default function CallPage() {
    * (CallDispositionPopup should call this)
    */
   const closeDispo = () => {
-    console.log("dispo close")
+
     setShowDispo(false);
     setCallState(CALL_STATE.IDLE); // polling OFF
     setActiveNumber(null);

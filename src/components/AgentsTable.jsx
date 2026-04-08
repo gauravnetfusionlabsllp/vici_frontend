@@ -180,13 +180,13 @@ const handleUsernameClick = useCallback((username) => {
         maxWidth: 120,
         cellClass: "font-mono text-slate-300",
       },
-      {
-        headerName: "PHONE",
-        field: "phone_number",
-        minWidth: 140,
-        maxWidth: 140,
-        cellClass: "font-mono text-slate-300",
-      },
+      // {
+      //   headerName: "PHONE",
+      //   field: "phone_number",
+      //   minWidth: 140,
+      //   maxWidth: 140,
+      //   cellClass: "font-mono text-slate-300",
+      // },
       {
         headerName: "LOGIN DURATION",
         field: "login_duration",
@@ -197,6 +197,14 @@ const handleUsernameClick = useCallback((username) => {
       {
         headerName: "TALK TIME",
         field: "TALK_TIME_HH_MM_SS",
+        minWidth: 120,
+        maxWidth: 160,
+        // flex: 1, // ✅ let this stretch
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "PAUSE DURATION",
+        field: "pause_sec",
         minWidth: 120,
         maxWidth: 160,
         // flex: 1, // ✅ let this stretch

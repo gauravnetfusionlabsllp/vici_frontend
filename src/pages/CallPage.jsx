@@ -70,10 +70,12 @@ const InCall_ReadyToDisconnect = shouldPollLog&& callStatusData? callStatusData?
   useEffect(() => {
     
     
-    if(!callStatusData || isAdmin) return
-    console.log({callStatus:callStatusData.data.call_status, isAdmin})
-    if (callStatusData.data?.call_status !=="DISPOSITION_PENDING") return;
-    dispatch(openDispo());
+    if(!callStatusData || isAdmin) return;
+    if(callStatusData.data?.call_status === "DISPOSITION_PENDING") {
+      dispatch(openDispo());
+      return;
+    }
+      
   }, [ dispatch, isAdmin,callStatusData]);
 
 

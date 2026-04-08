@@ -10,7 +10,7 @@ export function ComplianceStats({ allData }) {
       risk_level = '--',
     
     } = allData || {};
-    console.log({allData});
+    
     return (
       <div className="p-2 border border-border rounded-lg bg-card/60">
         <div className="m-2 lg:mb-4">

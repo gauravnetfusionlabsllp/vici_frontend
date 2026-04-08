@@ -135,7 +135,7 @@ const [sendMessage] = useSendMessageMutation();
         dispatch(setCallState(CALL_STATE.IDLE));
         return;
       }
-console.log("details",res?.details )
+
       dispatch(setCurrentLead(res?.details ?? null));
       dispatch(setCallState(CALL_STATE.INCALL));
       // navigate("/call");

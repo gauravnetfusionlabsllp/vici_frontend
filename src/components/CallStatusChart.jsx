@@ -28,11 +28,6 @@ export function CallStatusChart({ callStatus ,CallStatusLoading = true}) {
       .map(([name, value]) => ({ name, value }));
   
       let total = rows[totalKey] ?? 0;
-    console.log("Call Status Rows:", rows);
-    console.log("Total Key:", totalKey);
-  
-    
-
   const data = useMemo(() => {
     return breakdown
       // .filter(item => item.value > 0)

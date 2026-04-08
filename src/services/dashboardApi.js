@@ -22,7 +22,6 @@ const baseQuery = fetchBaseQuery({
 });
 const addParamsToUrl = (url, paramsObj) => {
   const qs = new URLSearchParams(paramsObj).toString();
-  console.log('Constructed query string:', qs);
   if (!qs) return url;
   return url.includes("?") ? `${url}&${qs}` : `${url}?${qs}`;
 };
@@ -46,11 +45,9 @@ const baseQueryWithSession = async (args, api, extraOptions) => {
     const params = {};
     if (from) params.sd = from; // "YYYY-MM-DD"
     if (to) params.ed = to;
-console.log('Adding date params to request:', params);
     // attach to URL as query params
     if (Object.keys(params).length) {
       req.url = addParamsToUrl(req.url, params);
-      console.log('Modified request URL with date params:', req.url);
     }
   }
   if (withCampaign) { // 👈 new block
