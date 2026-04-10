@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { OverviewCard } from './OverviewCard';
 import { Users, Headphones, Clock, PhoneIncoming, PauseCircle, Phone, Loader } from 'lucide-react';
-import { useGetTotalDialsTodayQuery } from '../services/dashboardApi';
+import { useGetMetaLeadStatsQuery, useGetTotalDialsTodayQuery } from '../services/dashboardApi';
 import { useLocation } from 'react-router-dom';
 import { selectIsAdmin } from '../slices/authSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,11 @@ const TotalDialsToday = ({ overview }) => {
     pollingInterval: 30000,
     skipPollingIfUnfocused: true,
     
+  });
+  const { data: metaLeadData, isLoading: metaLoading } =
+  useGetMetaLeadStatsQuery(undefined, {
+    pollingInterval: 30000,
+    skipPollingIfUnfocused: true,
   });
   const location = useLocation();
   const isCallPage = location.pathname === "/call";
@@ -33,7 +38,11 @@ const TotalDialsToday = ({ overview }) => {
     leads_connected,
 
   } = TodaysDialsData?.data?.[0] || {};
-
+const {
+  total_leads,
+  called_leads,
+  pending_leads,
+} = metaLeadData || {};
   // Define KPIs dynamically
   const kpis = [
     // { label: 'Call Date', value: call_date, icon: Phone, trend: '+3.2%', color: 'blue' }, // optional, if needed
@@ -43,8 +52,12 @@ const TotalDialsToday = ({ overview }) => {
     { label: 'Total Talk Time', value: total_talk_time, icon: Users, trend: 'total seats', color: 'blue' },
     { label: 'Avg Talk Time Sec', value: avg_talk_time_sec, icon: Headphones, trend: 'handling customers', color: 'blue' },
     // { label: 'Leads Contacted', value: leads_connected, icon: Users, trend: 'idle & ready', color: 'blue' },
+     // ✅ NEW DATA
+  { label: 'Total META Leads', value: total_leads, icon: Users, trend: 'meta', color: 'blue' },
+  { label: 'Called META Leads', value: called_leads, icon: Phone, trend: 'progress', color: 'green' },
+  { label: 'Pending META Leads', value: pending_leads, icon: PauseCircle, trend: 'remaining', color: 'red' },
   ];
-  if (isLoading) return (
+  if (isLoading || metaLoading) return (
     <div className="flex items-center justify-center h-[220px]">
       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
     </div>

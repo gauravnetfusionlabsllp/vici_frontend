@@ -297,6 +297,15 @@ export const dashboardApi = createApi({
       }),
       invalidatesTags: ["Leads"],
     }),
+    getMetaLeadStats: builder.query({
+  query: () => "/metalead-stats",
+  providesTags: ['Dashboard', 'DATE_FILTERED'],
+  keepUnusedDataFor: 60,
+  extraOptions: {
+    maxRetries: 3,
+    withDate: true,
+  },
+}),
   }),
 });
 
@@ -328,5 +337,6 @@ export const {
   useGetCampaignsQuery,
   useDeleteLeadMutation,
   useStatusDataQuery,
-  useSendMessageMutation
+  useSendMessageMutation,
+  useGetMetaLeadStatsQuery
 } = dashboardApi;
