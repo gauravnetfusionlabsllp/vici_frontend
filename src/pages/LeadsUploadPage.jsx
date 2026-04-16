@@ -1,6 +1,7 @@
 import { Upload, FileSpreadsheet, ListOrdered, Phone, Trash2 } from "lucide-react";
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef, useState, useEffect, memo, useCallback } from "react";
+import * as XLSX from "xlsx";
 import {
   useUploadExcelLeadsMutation,
   useGetLeadsQuery,
@@ -72,7 +73,8 @@ export default function LeadsUploadPage() {
 
   const [activeNumber, setActiveNumber] = useState(null);
   const [polling, setPolling] = useState(false);
-
+const [demoData, setDemoData] = useState([]);
+const [demoCols, setDemoCols] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null); // single delete row object
@@ -128,6 +130,41 @@ export default function LeadsUploadPage() {
     setSelectedLeads([]);
   }, []);
 
+  useEffect(() => {
+  const loadDemoFile = async () => {
+    try {
+      const res = await fetch("/sample-leads.xlsx"); // 👈 your file in public
+      const blob = await res.blob();
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+
+        if (!json.length) return;
+
+        // create columns dynamically
+        const cols = Object.keys(json[0]).map((key) => ({
+          headerName: key.toUpperCase(),
+          field: key,
+        }));
+
+        setDemoData(json.slice(0, 5)); // 👈 only show 5 rows (clean UI)
+        setDemoCols(cols);
+      };
+
+      reader.readAsArrayBuffer(blob);
+    } catch (err) {
+      console.error("Failed to load demo excel:", err);
+    }
+  };
+
+  loadDemoFile();
+}, []);
   const onUpload = async () => {
     if (!file || !selectedCampaign) return;
 
@@ -522,6 +559,44 @@ export default function LeadsUploadPage() {
           </button>
         </div>
       </div>
+      {/* Demo Excel Preview */}
+<div className="border border-border rounded-xl bg-card/60 p-4">
+  <div className="flex justify-between items-center mb-2">
+    <h3 className="text-md font-semibold text-white flex items-center gap-2">
+      <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+      Sample Excel Format <p className="text-xs text-amber-400 ">
+  ⚠️ Make sure column names match exactly or upload will fail.
+</p>
+    </h3>
+
+    {/* Download button */}
+    <a
+      href="/sample-leads.xlsx"
+      download
+      className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs flex items-center gap-2"
+    >
+      <FileSpreadsheet className="w-3 h-3" />
+      Download
+    </a>
+  </div>
+
+  <p className="text-xs text-slate-400 mb-3">
+    Upload your Excel file using this structure. Only few sample rows are shown.
+  </p>
+
+  <div className="h-[160px]">
+    <AgGridReact
+      rowData={demoData}
+      columnDefs={demoCols}
+      defaultColDef={{
+        resizable: true,
+        sortable: false,
+        filter: false,
+      }}
+      theme={agTheme}
+    />
+  </div>
+</div>
 
       {/* Table Section */}
       <div className="border border-border rounded-xl bg-card/60 p-4">
