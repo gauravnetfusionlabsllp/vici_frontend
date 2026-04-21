@@ -7,7 +7,7 @@ export const setSessionExpired = (val) => {
   isSessionExpired = val;
 };
 const baseQuery = fetchBaseQuery({
-  baseUrl: "http://192.168.15.61:8000",
+  baseUrl: import.meta.env.VITE_BASE_URL,
   prepareHeaders: (headers) => {
     const userStr = localStorage.getItem("user");
     const user = userStr ? JSON.parse(userStr) : null;
