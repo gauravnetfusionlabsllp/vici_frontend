@@ -5,7 +5,8 @@ const initialState = {
   currentLead: null, // <-- will store response.details
   isPaused: true,
   isAvailableLeads:false,
-  autoDialTime: dayjs().add(30, "seconds").valueOf()
+  autoDialTime: dayjs().add(30, "seconds").valueOf(),
+  formNameFilter: "",
 };
 
 const dialSlice = createSlice({
@@ -26,11 +27,15 @@ const dialSlice = createSlice({
     },
     setIsAvailableLeads(state, action){
       state.isAvailableLeads = action.payload
-    }
+    },
+    setFormNameFilter(state, action) {
+  state.formNameFilter = action.payload;
+},
   },
 });
 
-export const { setCurrentLead, clearCurrentLead, togglePause, resetAutoDialTime,setIsAvailableLeads } = dialSlice.actions;
+export const { setCurrentLead, clearCurrentLead, togglePause, resetAutoDialTime,setIsAvailableLeads, setFormNameFilter } = dialSlice.actions;
 export default dialSlice.reducer;
 
 export const selectCurrentLead = (state) => state.dial.currentLead;
+export const selectFormNameFilter = (state) => state.dial.formNameFilter;

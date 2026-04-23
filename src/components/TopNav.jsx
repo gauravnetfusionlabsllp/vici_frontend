@@ -3,8 +3,8 @@ import { format } from "date-fns";
 import { BarChart, ChevronRight, Loader2, LogOut, Menu, User, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { clearUser, selectIsAdmin, selectRoleLabel, selectUser, selectUserName } from "../slices/authSlice";
-import { resetAutoDialTime, setCurrentLead } from "../slices/dialSlice";
+import { clearUser, selectCampaingName, selectIsAdmin, selectRoleLabel, selectUser, selectUserName } from "../slices/authSlice";
+import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "../slices/dialSlice";
 import { dashboardApi, useDialNextMutation } from "../services/dashboardApi";
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState } from "../slices/callSlice";
 import dayjs from "dayjs"
@@ -33,7 +33,7 @@ function fromYMD(s) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 const agentNavItems = [{ name: "Call", path: "/call" }];
-
+const HOT_METAL_CAMPAIGN = "HotMetaleads";
 export default function TopNav() {
   const [now, setNow] = useState(new Date());
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,6 +41,7 @@ export default function TopNav() {
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
   const roleLabel = useSelector(selectRoleLabel);
+  const campaignName = useSelector(selectCampaingName);
   const userName = useSelector(selectUserName);
   const { closePopup } = useVicidialPopup();
   const isCallBusy = useSelector(selectIsCallBusy);
@@ -48,7 +49,8 @@ export default function TopNav() {
   const navigate = useNavigate();
   const today = useMemo(() => new Date(), []);
   const dateRange = useSelector(selectDateRange);
-
+  const formNameFilter = useSelector(selectFormNameFilter);
+  const isHotMetal = campaignName === HOT_METAL_CAMPAIGN;
   // local state for DatePicker (it needs Date objects)
   const [startDate, setStartDate] = useState(() => fromYMD(dateRange.from));
   const [endDate, setEndDate] = useState(() => fromYMD(dateRange.to));
@@ -83,6 +85,9 @@ export default function TopNav() {
     dispatch(clearUser());
     navigate("/login", { replace: true });
   };
+  const formNameFilterRef = useRef(formNameFilter);
+useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter]);
+
   const handleDialNextCb = useCallback(async () => {
     if (isCallBusy || isDialing) return;
     dialLockRef.current = true;
@@ -92,7 +97,12 @@ export default function TopNav() {
       // await dialNext({ userId: user.id }).unwrap();
       dispatch(setCallState(CALL_STATE.DIALING));
 
-      let res = await dialNext({}).unwrap();
+      const currentFormName = formNameFilterRef.current;
+    const dialParams = isHotMetal && currentFormName
+      ? { form_name: currentFormName }
+      : {};
+
+      const res = await dialNext(dialParams).unwrap();
 
       if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
         alert(res.vicidial_response);
@@ -113,6 +123,8 @@ export default function TopNav() {
   }, [
     isCallBusy,
     isDialing,
+    isHotMetal,
+    dialNext,
     dispatch,
     navigate,
 
@@ -244,17 +256,20 @@ export default function TopNav() {
         {/* RIGHT */}
         <div className="ml-auto flex items-center gap-4">
           {user && (
-            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-md bg-slate-800/60 border border-slate-700">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800/60 border border-slate-700">
               <User className="w-4 h-4 text-muted-foreground" />
               <div className="leading-tight">
-                <div className="text-sm font-medium">{userName}</div>
+                <div className="text-xs font-medium">{userName}</div>
                 <div className="text-[11px] text-muted-foreground">
                   {roleLabel}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {campaignName}
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="ml-2 p-1.5 rounded-md hover:bg-slate-700 text-muted-foreground hover:text-red-400 transition"
+                className="ml-1 p-1.5 rounded-md hover:bg-slate-700 text-muted-foreground hover:text-red-400 transition"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4" />

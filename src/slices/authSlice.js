@@ -35,7 +35,6 @@ export default authSlice.reducer;
 // optional selectors (recommended)
 export const selectUser = (state) => state.auth.user;
 export const selectIsAdmin = (state) => !!state.auth.user?.isAdmin;
-export const selectRoleLabel = (state) =>
-    state.auth.user?.isAdmin ? "Admin" : "Agent";
-  export const selectUserName = (state) =>
-    state.auth.user?.user || state.auth.user?.full_name || "User";
+export const selectRoleLabel = (state) => state.auth.user?.isAdmin ? "Admin" : "Agent";
+export const selectUserName = (state) => state.auth.user?.user || state.auth.user?.full_name || "User";
+export const selectCampaingName = (state) => state.auth.user?.campaign_name || "NO CAMPAIGN";
