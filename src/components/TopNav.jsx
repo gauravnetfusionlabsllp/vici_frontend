@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { BarChart, ChevronRight, Loader2, LogOut, Menu, User, X } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser, selectCampaingName, selectIsAdmin, selectRoleLabel, selectUser, selectUserName } from "../slices/authSlice";
 import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "../slices/dialSlice";
@@ -17,6 +17,7 @@ const adminNavItems = [
   { name: "Dashboard", path: "/" },
   { name: "Selective", path: "/selective" },
   { name: "Leads Upload", path: "/leads-upload" },
+  { name: "Email Templates",  path: "/email-templates" }, 
 ];
 function toYMD(date) {
   if (!date) return null;
@@ -37,7 +38,9 @@ const HOT_METAL_CAMPAIGN = "HotMetaleads";
 export default function TopNav() {
   const [now, setNow] = useState(new Date());
   const [mobileOpen, setMobileOpen] = useState(false);
+const location = useLocation(); 
 
+const hideDatePicker = ["/leads-upload", "/email-templates"].includes(location.pathname);
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
   const roleLabel = useSelector(selectRoleLabel);
@@ -198,7 +201,7 @@ useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter
           </h1>
         </div>
 
-        {user && <div className="hidden md:flex items-center gap-2 mx-2">
+        {user &&  !hideDatePicker && <div className="hidden md:flex items-center gap-2 mx-2">
           <span className="text-sm text-slate-400">From:</span>
           <DatePicker
             selected={startDate}
@@ -236,7 +239,7 @@ useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter
         </div>}
 
         {/* CENTER NAV (DESKTOP) */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-6 px-2">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -341,6 +344,9 @@ useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter
                 <div className="text-[11px] text-muted-foreground">
                   {roleLabel}
                 </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {campaignName}
+                </div>
               </div>
               
               <button
@@ -354,7 +360,7 @@ useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter
               </button>
             </div>
           )}
-          {user &&(<div className="flex items-center gap-2">
+          {user && !hideDatePicker &&(<div className="flex items-center gap-2">
                 <span className="text-sm text-slate-400">From:</span>
                 <DatePicker
                   selected={startDate}

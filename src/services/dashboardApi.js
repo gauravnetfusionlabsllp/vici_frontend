@@ -76,7 +76,7 @@ const baseQueryWithSession = async (args, api, extraOptions) => {
 export const dashboardApi = createApi({
   reducerPath: 'dashboardApi',
   baseQuery: baseQueryWithSession,
-  tagTypes: ['Dashboard', "Leads","DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED'],
+  tagTypes: ['Dashboard', "Leads","DATE_FILTERED",'CAMPAIGN_FILTERED','USERNAME_FILTERED','EmailTemplates','EmailAttachments',],
   endpoints: (builder) => ({
 
     //   getOverview: builder.query({
@@ -305,7 +305,107 @@ export const dashboardApi = createApi({
     maxRetries: 3,
     withDate: true,
   },
-}),
+    }),
+    
+    /** GET /email/templates — list all templates + their attachments */
+    getEmailTemplates: builder.query({
+      query: () => "/email/templates",
+      transformResponse: (res) => res.data ?? [],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'EmailTemplates', id })),
+              { type: 'EmailTemplates', id: 'LIST' },
+            ]
+          : [{ type: 'EmailTemplates', id: 'LIST' }],
+    }),
+ 
+    /** GET /email/templates/{id} — get one template */
+    getEmailTemplate: builder.query({
+      query: (id) => `/email/templates/${id}`,
+      transformResponse: (res) => res.data ?? [],
+      providesTags: (result, error, id) => [{ type: 'EmailTemplates', id }],
+    }),
+ 
+    /** POST /email/templates — create template, optionally link attachment IDs */
+    createEmailTemplate: builder.mutation({
+      query: (body) => ({
+        url: "/email/templates",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }),
+      invalidatesTags: [{ type: 'EmailTemplates', id: 'LIST' }],
+    }),
+ 
+    /** PUT /email/templates/{id} — update template / swap attachments */
+    updateEmailTemplate: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/email/templates/${id}`,
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'EmailTemplates', id },
+        { type: 'EmailTemplates', id: 'LIST' },
+      ],
+    }),
+ 
+    /** DELETE /email/templates/{id} — delete template */
+    deleteEmailTemplate: builder.mutation({
+      query: (id) => ({
+        url: `/email/templates/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'EmailTemplates', id },
+        { type: 'EmailTemplates', id: 'LIST' },
+      ],
+    }),
+ 
+    // ─────────────────────────────────────────────
+    // EMAIL ATTACHMENTS  (Admin-only)
+    // ─────────────────────────────────────────────
+ 
+    /** GET /email/attachments — list all uploaded files */
+    getEmailAttachments: builder.query({
+      query: () => "/email/attachments",
+      transformResponse: (res) => res.data ?? [],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'EmailAttachments', id })),
+              { type: 'EmailAttachments', id: 'LIST' },
+            ]
+          : [{ type: 'EmailAttachments', id: 'LIST' }],
+    }),
+ 
+    /** POST /email/attachments — upload file (multipart) */
+    uploadEmailAttachment: builder.mutation({
+      query: (formData) => ({
+        url: "/email/attachments",
+        method: "POST",
+        body: formData,
+        // Do NOT set Content-Type — browser sets it with boundary for multipart
+      }),
+      invalidatesTags: [{ type: 'EmailAttachments', id: 'LIST' }],
+    }),
+ 
+    /** DELETE /email/attachments/{id} — delete file from disk + DB */
+    deleteEmailAttachment: builder.mutation({
+      query: (id) => ({
+        url: `/email/attachments/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'EmailAttachments', id },
+        { type: 'EmailAttachments', id: 'LIST' },
+        // Templates may reference this attachment, so refresh them too
+        { type: 'EmailTemplates', id: 'LIST' },
+      ],
+    }),
+  
   }),
 });
 
@@ -338,5 +438,14 @@ export const {
   useDeleteLeadMutation,
   useStatusDataQuery,
   useSendMessageMutation,
-  useGetMetaLeadStatsQuery
+  useGetMetaLeadStatsQuery,
+  useGetEmailTemplatesQuery,
+  useGetEmailTemplateQuery,
+  useCreateEmailTemplateMutation,
+  useUpdateEmailTemplateMutation,
+  useDeleteEmailTemplateMutation,
+  // Email Attachments
+  useGetEmailAttachmentsQuery,
+  useUploadEmailAttachmentMutation,
+  useDeleteEmailAttachmentMutation,
 } = dashboardApi;
