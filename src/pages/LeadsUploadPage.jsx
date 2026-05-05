@@ -104,16 +104,17 @@ const [demoCols, setDemoCols] = useState([]);
   });
 
   const { data: campaingList, isLoading: campaingListLoading } = useGetCampaignsQuery();
+const queryParams = useMemo(() => ({
+  sd: startDate.toISOString().split("T")[0],
+  ed: endDate.toISOString().split("T")[0],
+  limit: pageSize,
+}), [startDate, endDate, pageSize]);
 
-  const { data, isFetching } = useGetLeadsQuery(
-    {
-      sd: startDate.toISOString().split("T")[0],
-      ed: endDate.toISOString().split("T")[0],
-      limit: pageSize,
-    },
+  const { data, isFetching } = useGetLeadsQuery(queryParams,
     {
       pollingInterval: 30000,
       skipPollingIfUnfocused: true,
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -236,6 +237,18 @@ const [demoCols, setDemoCols] = useState([]);
     }
   };
 
+const DISPOSITIONS = [
+  { label: "Busy", value: "B" },
+  { label: "Completed", value: "C" },
+  { label: "No Answer", value: "N" },
+  { label: "Not Interested", value: "NI" },
+  { label: "Callback", value: "CBR" },
+  { label: "Converted", value: "CON" },
+  { label: "Disconnected", value: "D" },
+  { label: "Interested", value: "IN" },
+  { label: "Invalid Number", value: "INVN" },
+  { label: "Wrong Number", value: "WN" },
+];
   const StatusRenderer = (params) => {
     const status = params.value;
 
@@ -250,7 +263,7 @@ const [demoCols, setDemoCols] = useState([]);
 
     return (
       <span className={`${base} ${classes[status] || "bg-slate-600/20 text-slate-300"}`}>
-        {status}
+        {status? DISPOSITIONS.find((d) => d.value === status)?.label || status : "—"  }
       </span>
     );
   };
@@ -352,6 +365,12 @@ const [demoCols, setDemoCols] = useState([]);
 
   const columnDefs = useMemo(
     () => [
+      {
+        headerName: "ENTRY DATE",
+        field: "entry_date",
+        minWidth: 140,
+        valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString() : "—"),
+      },
       // ✅ checkbox selection column
       {
         headerName: "",
@@ -363,18 +382,12 @@ const [demoCols, setDemoCols] = useState([]);
         suppressMovable: true,
         sortable: false,
         filter: false,
-        checkboxSelection: (p) => !activeNumber, // optional: disable selection while call active
+        checkboxSelection: (p) => !activeNumber && !!p.data?.phone_number, // only allow selection if has phone_number
         headerCheckboxSelection: () => !activeNumber,
         headerCheckboxSelectionFilteredOnly: true,
       },
 
-      {
-        headerName: "LEAD ID",
-        field: "lead_id",
-        minWidth: 100,
-        maxWidth: 110,
-        cellClass: "font-mono text-slate-300",
-      },
+      
       {
         headerName: "PHONE",
         field: "phone_number",
@@ -393,11 +406,13 @@ const [demoCols, setDemoCols] = useState([]);
         field: "first_name",
         minWidth: 140,
         valueFormatter: ({ value }) => value || "—",
+        resizable: true,
       },
       {
         headerName: "LAST NAME",
         field: "last_name",
         minWidth: 140,
+        resizable: true,
         valueFormatter: ({ value }) => value || "—",
       },
       {
@@ -407,24 +422,19 @@ const [demoCols, setDemoCols] = useState([]);
         cellRenderer: StatusRenderer,
       },
       {
-        headerName: "LIST ID",
-        field: "list_id",
-        minWidth: 90,
-        maxWidth: 100,
-        cellClass: "font-mono text-slate-300",
-      },
-      {
         headerName: "CAMPAIGN",
         field: "campaign_id",
         minWidth: 130,
         cellClass: "font-mono text-slate-300",
         filter: true
       },
+      
       {
-        headerName: "ENTRY DATE",
-        field: "entry_date",
-        minWidth: 130,
-        valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString() : "—"),
+        headerName: "LIST ID",
+        field: "list_id",
+        minWidth: 90,
+        maxWidth: 100,
+        cellClass: "font-mono text-slate-300",
       },
 
       // (optional) call column (you had it commented)
@@ -438,7 +448,13 @@ const [demoCols, setDemoCols] = useState([]);
       //   suppressMovable: true,
       //   cellRenderer: CallCellRenderer,
       // },
-
+{
+        headerName: "LEAD ID",
+        field: "lead_id",
+        minWidth: 100,
+        maxWidth: 110,
+        cellClass: "font-mono text-slate-300",
+      },
       {
         headerName: "DELETE",
         colId: "delete",
@@ -642,7 +658,7 @@ const [demoCols, setDemoCols] = useState([]);
 
             {/* Rows */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400">Rows:</span>
+              <span className="text-sm text-slate-400">MaxRows:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}

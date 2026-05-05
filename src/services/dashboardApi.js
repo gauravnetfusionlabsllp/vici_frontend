@@ -405,6 +405,78 @@ export const dashboardApi = createApi({
         { type: 'EmailTemplates', id: 'LIST' },
       ],
     }),
+    // ── Campaign Lead Router ──────────────────────────────────────────────────
+    /**
+     * GET /campaign-leads
+     * Returns all routing rules, ordered by id DESC.
+     */
+    getCampaignLeads: builder.query({
+      query: () => "/campaign-leads",
+      transformResponse: (res) => res.data ?? [],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "CampaignLeads", id })),
+              { type: "CampaignLeads", id: "LIST" },
+            ]
+          : [{ type: "CampaignLeads", id: "LIST" }],
+    }),
+ 
+    /**
+     * POST /campaign-leads
+     * Body: { source, startDate, endDate, campaign_name, form_name, isActive, destination_campaign }
+     */
+    createCampaignLead: builder.mutation({
+      query: (body) => ({
+        url: "/campaign-leads",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }),
+      invalidatesTags: [{ type: "CampaignLeads", id: "LIST" }],
+    }),
+ 
+    /**
+     * PATCH /campaign-leads/{id}/toggle-active
+     * Flips isActive. Uses optimistic update so the UI responds instantly.
+     */
+    toggleCampaignLeadActive: builder.mutation({
+      query: (id) => ({
+        url: `/campaign-leads/${id}/toggle-active`,
+        method: "PATCH",
+      }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        // optimistic flip
+        const patch = dispatch(
+          dashboardApi.util.updateQueryData("getCampaignLeads", undefined, (draft) => {
+            const item = draft.find((l) => l.id === id);
+            if (item) item.isactive = !item.isactive;
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+      invalidatesTags: (result, error, id) => [{ type: "CampaignLeads", id }],
+    }),
+ 
+    /**
+     * POST /campaign-leads/sync
+     * Params: { source, form_name, campaign_name, sd?, ed? }
+     * Scoped to a single rule — NOT a global sync.
+     */
+    syncCampaignLeadRule: builder.mutation({
+      query: (params) => ({
+        url: "/campaign-leads/sync",
+        method: "POST",
+        params,
+      }),
+    }),
+    leadFilters: builder.query({
+      query: () => "/meta/lead-filters",
+    }),
   
   }),
 });
@@ -448,4 +520,10 @@ export const {
   useGetEmailAttachmentsQuery,
   useUploadEmailAttachmentMutation,
   useDeleteEmailAttachmentMutation,
+  // Campaign Lead Router
+  useGetCampaignLeadsQuery,
+  useCreateCampaignLeadMutation,
+  useToggleCampaignLeadActiveMutation,
+  useSyncCampaignLeadRuleMutation,
+  useLeadFiltersQuery,
 } = dashboardApi;

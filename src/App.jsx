@@ -14,6 +14,7 @@ import SessionPopup from "./components/SessionPopup";
 import Unauthorized from "./pages/Unauthorized";
 import PublicRoute from "./components/PublicRoute";
 import EmailTemplatesPage from "./pages/EmailTemplatesPage";
+import CampaignLeadsPage from "./pages/Campaignleadpage";
 function NotFound() {
   return (
     <div className="text-center py-20">
@@ -38,6 +39,7 @@ function App() {
               <Route path="/selective" element={<Selective />} />
               <Route path="/leads-upload" element={<LeadsUploadPage />} />
               <Route path="/email-templates" element={<EmailTemplatesPage />} />
+              <Route path="/campaign-leads"    element={<CampaignLeadsPage />} /> 
             </Route>
 
             {/* 🔐 Authenticated but NOT admin */}
