@@ -572,12 +572,12 @@ export default function CreateRuleModal({ open, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fade-in"
     >
       <div
         className="w-full max-w-2xl rounded-2xl border border-white/10
           bg-gradient-to-b from-slate-900/95 to-slate-950/95
-          shadow-[0_30px_120px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[92vh]"
+          shadow-[0_30px_120px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[92vh] animate-pop-in"
       >
         {/* Header */}
         <div className="relative px-6 py-4 border-b border-white/10 shrink-0">

@@ -52,10 +52,10 @@ export default function SyncDrawer({ lead, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div onClick={onClose} className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
+      <div onClick={onClose} className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-fade-in" />
       <aside className="relative z-10 w-[400px] max-w-full h-full bg-gradient-to-b from-slate-900/95 to-slate-950
         border-l border-white/10 flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.7)]
-        animate-[slideInRight_0.25s_cubic-bezier(0.22,1,0.36,1)]">
+        animate-slide-in-right">
 
         <div className="px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
           <div>
@@ -67,7 +67,7 @@ export default function SyncDrawer({ lead, onClose }) {
               <ConditionChip label="→"    value={lead.destination_campaign} />
             </div>
           </div>
-          <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-white transition shrink-0">
+          <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-white transition-smooth active:scale-90 shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -134,14 +134,15 @@ export default function SyncDrawer({ lead, onClose }) {
             disabled={isLoading}
             className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5
               bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold
-              disabled:opacity-50 disabled:cursor-not-allowed transition"
+              disabled:opacity-50 disabled:cursor-not-allowed transition-smooth active:scale-[0.98]
+              hover:shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)]"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronsRight className="w-4 h-4" />}
             {isLoading ? 'Running…' : 'Run Sync'}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/8 text-sm transition"
+            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/8 text-sm transition-smooth active:scale-[0.97]"
           >
             Close
           </button>

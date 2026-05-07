@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import Chart from "react-apexcharts";
 import { useUserTimelineQuery } from "@/services";
+import { Skeleton } from "@/shared/components/ui";
 
 function toMs(iso) {
   const d = new Date(iso);
@@ -207,15 +208,15 @@ export default function UserTimelinePanel() {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 p-3">
-        <div className="h-10 animate-pulse rounded-xl bg-white/5" />
-        <div className="h-64 animate-pulse rounded-xl bg-white/5" />
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/70 to-slate-950/80 shadow-[0_30px_120px_rgba(0,0,0,0.55)] p-3 space-y-2">
+        <Skeleton className="h-10 w-full" rounded="xl" />
+        <Skeleton className="h-64 w-full" rounded="xl" />
       </div>
     );
   }
 
   if (isError) {
-    return <div className="p-3 text-sm text-red-400">Failed to load user timeline</div>;
+    return <div className="p-3 text-sm text-red-400 animate-fade-in">Failed to load user timeline</div>;
   }
 
   return (
@@ -223,7 +224,7 @@ export default function UserTimelinePanel() {
       className="relative overflow-hidden rounded-2xl border border-white/10
                  bg-gradient-to-b from-slate-900/70 to-slate-950/80
                  shadow-[0_30px_120px_rgba(0,0,0,0.55)]
-                 max-h-[500px]"
+                 max-h-[500px] transition-smooth"
     >
       {/* soft glow (same as your CallbackListPanel) */}
       <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(700px_circle_at_15%_0%,rgba(56,189,248,0.16),transparent_55%),radial-gradient(700px_circle_at_90%_10%,rgba(168,85,247,0.14),transparent_55%)]" />

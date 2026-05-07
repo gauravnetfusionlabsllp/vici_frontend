@@ -77,7 +77,8 @@ export function OverviewCard({
       className={`group relative h-[7rem] min-w-[12.5rem] flex flex-col overflow-hidden
                   rounded-lg border ${tone.ring} bg-card/60 backdrop-blur-sm
                   shadow-[0_8px_30px_rgba(0,0,0,0.45)] ${tone.glow}
-                  transition-colors duration-200 hover:bg-card/80 hover:border-opacity-70`}
+                  transition-smooth hover-lift hover:bg-card/80 hover:border-opacity-70
+                  hover:shadow-[0_12px_40px_rgba(0,0,0,0.55)]`}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tone.tint}`} />
 

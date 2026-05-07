@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet, ListOrdered, Trash2, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, ListOrdered, Trash2, Download, Loader2 } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
@@ -249,9 +249,9 @@ export default function LeadsUploadPage() {
   const rowClassRules  = useMemo(() => ({ 'active-call-row': (params) => params.data?.phone_number === activeNumber }), [activeNumber]);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-6 stagger-children">
       {/* Upload Section */}
-      <div className="border border-border rounded-xl bg-card/60 p-4 flex justify-between items-center">
+      <div className="border border-border rounded-xl bg-card/60 p-4 flex justify-between items-center transition-smooth">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
           Upload Leads (Excel)
@@ -259,10 +259,10 @@ export default function LeadsUploadPage() {
         <div className="flex flex-wrap items-center justify-end gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls" hidden onChange={(e) => setFile(e.target.files[0])} />
-            <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm border border-slate-700">
+            <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm border border-slate-700 transition-smooth active:scale-[0.97]">
               Choose File
             </button>
-            <span className="text-sm text-slate-400">{file ? file.name : 'No file selected'}</span>
+            <span className="text-sm text-slate-400 animate-fade-in" key={file?.name ?? 'none'}>{file ? file.name : 'No file selected'}</span>
           </div>
           <select
             disabled={campaingListLoading || (campaingList?.data?.length ?? 0) === 0}
@@ -272,21 +272,21 @@ export default function LeadsUploadPage() {
               const c  = campaingList?.data?.find((x) => x.campaign_id === id);
               setSelectedCampaign(c ? { id: c.campaign_id, name: c.campaign_name } : null);
             }}
-            className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-50 transition-smooth focus:border-primary/60"
           >
             <option value="" disabled>{campaingListLoading ? 'Loading campaigns...' : 'Select Campaign'}</option>
             {campaingList?.data?.map((c) => <option key={c.campaign_id} value={c.campaign_id}>{c.campaign_name}</option>)}
           </select>
           <button onClick={onUpload} disabled={!file || !selectedCampaign || uploading}
-            className="px-5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm flex items-center gap-2 disabled:opacity-50">
-            <Upload className="w-4 h-4" />
+            className="px-5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm flex items-center gap-2 disabled:opacity-50 transition-smooth active:scale-[0.97] hover:shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)]">
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
         </div>
       </div>
 
       {/* Demo Excel Preview */}
-      <div className="border border-border rounded-xl bg-card/60 p-4">
+      <div className="border border-border rounded-xl bg-card/60 p-4 transition-smooth">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-md font-semibold text-white flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
@@ -294,7 +294,7 @@ export default function LeadsUploadPage() {
             <p className="text-xs text-amber-400">⚠️ Make sure column names match exactly or upload will fail.</p>
           </h3>
           <a href="/sample-leads.xlsx" download
-            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs flex items-center gap-2">
+            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs flex items-center gap-2 transition-smooth active:scale-[0.97]">
             <FileSpreadsheet className="w-3 h-3" /> Download
           </a>
         </div>
@@ -305,7 +305,7 @@ export default function LeadsUploadPage() {
       </div>
 
       {/* Table Section */}
-      <div className="border border-border rounded-xl bg-card/60 p-4">
+      <div className="border border-border rounded-xl bg-card/60 p-4 transition-smooth">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
           <h3 className="text-xl flex items-center gap-2 font-semibold text-white">
             <ListOrdered className="w-4 h-4 text-emerald-400" /> Leads
@@ -334,7 +334,7 @@ export default function LeadsUploadPage() {
               disabled={isFetching || rowData.length === 0}
               title="Download the currently filtered rows as CSV"
               className="px-3 py-2 rounded-md bg-emerald-600/20 text-emerald-200 border border-emerald-700/40
-                hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+                hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2 transition-smooth active:scale-[0.97]"
             >
               <Download size={16} />
               Download CSV
@@ -343,13 +343,13 @@ export default function LeadsUploadPage() {
               disabled={!selectedLeads.length || bulkDeleting}
               onClick={() => setBulkDeleteOpen(true)}
               className="px-3 py-2 rounded-md bg-rose-600/20 text-rose-200 border border-rose-700/40
-                hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+                hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2 transition-smooth active:scale-[0.97]"
             >
               <Trash2 size={16} />
               Delete Selected {selectedLeads.length ? `(${selectedLeads.length})` : ''}
             </button>
             {selectedLeads.length > 0 && (
-              <button onClick={clearSelection} className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 text-sm">
+              <button onClick={clearSelection} className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 text-sm transition-smooth active:scale-[0.97] animate-fade-in">
                 Clear
               </button>
             )}

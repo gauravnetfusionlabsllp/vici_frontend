@@ -30,7 +30,7 @@ export function CampaignPerformance({ data }) {
       <span
         onClick={() => handleCampaignClick(id)}
         className={`
-          cursor-pointer font-mono text-xs px-2 py-0.5 rounded transition-all
+          cursor-pointer font-mono text-xs px-2 py-0.5 rounded transition-smooth
           ${isActive
             ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50"
             : "text-slate-300 hover:text-emerald-400 hover:underline"
@@ -145,7 +145,7 @@ export function CampaignPerformance({ data }) {
   );
 
   return (
-    <div className="p-2 border border-border rounded-lg bg-card/60">
+    <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up">
       <div className="flex justify-between items-center m-2 lg:mb-4">
         <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />

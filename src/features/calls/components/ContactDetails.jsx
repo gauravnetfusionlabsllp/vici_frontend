@@ -124,7 +124,7 @@ function ContactDetails({inCallLogData}) {
     <div
       className="relative overflow-hidden rounded-2xl border border-white/10
                  bg-gradient-to-b from-slate-900/70 to-slate-950/80
-                 shadow-[0_30px_120px_rgba(0,0,0,0.55)]"
+                 shadow-[0_30px_120px_rgba(0,0,0,0.55)] transition-smooth"
     >
       {/* soft glow like screenshot */}
       <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(700px_circle_at_15%_0%,rgba(56,189,248,0.16),transparent_55%),radial-gradient(700px_circle_at_90%_10%,rgba(168,85,247,0.14),transparent_55%)]" />
@@ -187,11 +187,11 @@ function ContactDetails({inCallLogData}) {
       {/* Main */}
       <div className="relative px-6 py-5">
         {!lead ? (
-          <div className="text-slate-300">
+          <div className="text-slate-300 animate-fade-in">
             No active lead. Click <span className="text-cyan-200 font-semibold">DIAL NEXT</span>.
           </div>
         ) : (
-          <>
+          <div key={lead.lead_id ?? lead.phone_number} className="animate-fade-in">
             {/* Top identity row */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-5">
@@ -264,7 +264,7 @@ function ContactDetails({inCallLogData}) {
               <button
                 onClick={handleEndCall}
                 disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !inCallLogData}
-                className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition
+                className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]
                   ${
                     isInCall || isEnding
                       ? "border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
@@ -285,7 +285,7 @@ function ContactDetails({inCallLogData}) {
             <div className="mt-4 text-xs text-white/40">
               Call State: <span className="text-white/60">{callState}</span>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

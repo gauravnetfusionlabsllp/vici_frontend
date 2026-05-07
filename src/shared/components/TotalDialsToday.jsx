@@ -8,6 +8,7 @@ import { OverviewCard } from '@/features/dashboard/components/OverviewCard';
 import { useGetMetaLeadStatsQuery, useGetTotalDialsTodayQuery } from '@/services';
 import { selectIsAdmin } from '@/features/auth/slices/authSlice';
 import { togglePause } from '@/features/calls/slices/dialSlice';
+import { SkeletonOverviewCard } from '@/shared/components/ui';
 
 const TotalDialsToday = ({ overview }) => {
   const isAdmin = useSelector(selectIsAdmin);
@@ -50,11 +51,8 @@ const TotalDialsToday = ({ overview }) => {
     { label: 'Called META Leads', value: called_leads, icon: Phone, trend: 'progress', color: 'green' },
     { label: 'Pending META Leads', value: pending_leads, icon: PauseCircle, trend: 'remaining', color: 'red' },
   ];
-  if (isLoading || metaLoading) return (
-    <div className="flex items-center justify-center h-[220px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
-  );
+  const isBusy = isLoading || metaLoading;
+
   return (
     <div
       className={
@@ -62,8 +60,8 @@ const TotalDialsToday = ({ overview }) => {
           ? `relative overflow-hidden rounded-2xl border border-white/10
            bg-gradient-to-b from-slate-900/70 to-slate-950/80
            shadow-[0_30px_120px_rgba(0,0,0,0.55)]
-           p-2 max-w-[1440px]`
-          : `p-2 max-w-[1440px] border border-border rounded-lg bg-card/60`
+           p-2 max-w-[1440px] animate-fade-in-up`
+          : `p-2 max-w-[1440px] border border-border rounded-lg bg-card/60 animate-fade-in-up`
       }
     >
       {isCallPage && (
@@ -112,17 +110,19 @@ const TotalDialsToday = ({ overview }) => {
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto h-32 scrollbar-thin scrollbar-auto-hide">
-          {kpis.map(({ label, value, icon, trend, color }) => (
-            <OverviewCard
-              key={label}
-              label={label}
-              value={value}
-              icon={icon}
-              trend={trend}
-              color={color}
-            />
-          ))}
+        <div className="flex gap-2 overflow-x-auto h-32 scrollbar-thin scrollbar-auto-hide stagger-children">
+          {isBusy
+            ? Array.from({ length: 8 }).map((_, i) => <SkeletonOverviewCard key={i} />)
+            : kpis.map(({ label, value, icon, trend, color }) => (
+                <OverviewCard
+                  key={label}
+                  label={label}
+                  value={value}
+                  icon={icon}
+                  trend={trend}
+                  color={color}
+                />
+              ))}
         </div>
       </div>
     </div>

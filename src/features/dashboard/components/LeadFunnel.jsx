@@ -104,7 +104,7 @@ export function LeadFunnel() {
 )
 
   return (
-    <div className="p-2 border border-border rounded-lg bg-card/60">
+    <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up">
       <div className="flex flex-col  justify-between m-2 lg:mb-2">
   <div className="flex justify-between">
     <h3 className="text-xl font-semibold text-white">Lead Funnel</h3>
@@ -117,9 +117,9 @@ export function LeadFunnel() {
     </p>
 </div>
 
-      <div className="relative flex flex-col items-center gap-0 mt-2 px-4">
+      <div className="relative flex flex-col items-center gap-0 mt-2 px-4 stagger-children">
         {stages.map((stage, index) => (
-          <div key={stage.label} className="relative w-full flex items-center justify-center mb-2">
+          <div key={stage.label} className="relative w-full flex items-center justify-center mb-2 transition-smooth hover:brightness-110">
             {/* Left Label */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 text-left w-20">
               <div className="text-xs uppercase tracking-wider">{stage.label}</div>

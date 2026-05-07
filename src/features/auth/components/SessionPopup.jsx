@@ -49,8 +49,8 @@ export default function SessionPopup() {
   };
 
   return (
-    <div className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center">
-      <div className="bg-[hsl(229_56%_13%)] p-6 rounded-xl w-full max-w-sm border border-white/10 shadow-xl text-white">
+    <div className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center animate-fade-in">
+      <div className="bg-[hsl(229_56%_13%)] p-6 rounded-xl w-full max-w-sm border border-white/10 shadow-xl text-white animate-pop-in">
         <h3 className="text-lg font-semibold mb-2">Session Expired</h3>
         <p className="text-sm text-slate-400 mb-4">
           Your session has expired. Continue or logout?
@@ -59,7 +59,7 @@ export default function SessionPopup() {
         <div className="flex gap-3">
           <button
             onClick={handleLogout}
-            className="flex-1 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 flex items-center justify-center gap-2"
+            className="flex-1 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]"
           >
             <LogOut size={16} />
             Logout
@@ -68,7 +68,7 @@ export default function SessionPopup() {
           <button
             onClick={handleContinue}
             disabled={loading}
-            className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2"
+            className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2 transition-smooth active:scale-[0.97] disabled:opacity-60"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={16} />

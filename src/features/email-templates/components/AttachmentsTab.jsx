@@ -8,6 +8,7 @@ import {
 } from '@/services';
 import ConfirmDeletePopup from '@/shared/components/ConfirmDeletePopup';
 import { getFileIcon } from '../utils';
+import { SkeletonAvatarRow } from '@/shared/components/ui';
 
 export default function AttachmentsTab() {
   const { success, error } = useToast();
@@ -66,11 +67,11 @@ export default function AttachmentsTab() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-7 h-7 animate-spin text-sky-400" /></div>
+        <SkeletonAvatarRow count={5} />
       ) : attachments.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-4">
-          <div className="h-14 w-14 rounded-xl bg-slate-800/60 border border-white/10 grid place-items-center">
-            <Paperclip className="w-6 h-6 text-slate-600" />
+        <div className="py-16 flex flex-col items-center gap-4 animate-fade-in-up">
+          <div className="h-14 w-14 rounded-xl bg-slate-800/60 border border-white/10 grid place-items-center animate-pop-in">
+            <Paperclip className="w-6 h-6 text-slate-600 animate-pulse-slow" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-slate-400">No files uploaded</p>
@@ -78,10 +79,10 @@ export default function AttachmentsTab() {
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 stagger-children">
           {attachments.map((att) => (
             <div key={att.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/8
-              bg-slate-950/30 hover:bg-white/[0.03] transition group">
+              bg-slate-950/30 hover:bg-white/[0.03] hover:border-white/[0.14] transition-smooth group">
               <div className="flex items-center gap-3 min-w-0">
                 {getFileIcon(att)}
                 <div className="min-w-0">
@@ -92,7 +93,7 @@ export default function AttachmentsTab() {
               <button
                 onClick={() => setDeleteTarget(att)}
                 className="ml-4 shrink-0 h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5
-                  text-slate-500 hover:text-rose-300 hover:border-rose-500/30 hover:bg-rose-500/10 transition
+                  text-slate-500 hover:text-rose-300 hover:border-rose-500/30 hover:bg-rose-500/10 transition-smooth active:scale-90
                   opacity-0 group-hover:opacity-100"
                 title="Delete file"
               >

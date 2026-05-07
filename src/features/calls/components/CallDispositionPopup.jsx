@@ -177,10 +177,10 @@ const [sendMessage] = useSendMessageMutation();
     dispatch(setCallState(CALL_STATE.IDLE));
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fade-in">
       <div
         className="w-full max-w-[860px] max-h-[700px] rounded-2xl border border-white/10 overflow-y-scroll
-                   bg-gradient-to-b from-slate-900/70 to-slate-950/80 shadow-[0_30px_120px_rgba(0,0,0,0.65)]"
+                   bg-gradient-to-b from-slate-900/70 to-slate-950/80 shadow-[0_30px_120px_rgba(0,0,0,0.65)] animate-pop-in"
       >
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-white/10">

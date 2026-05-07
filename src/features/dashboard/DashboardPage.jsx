@@ -49,23 +49,23 @@ export default function DashboardPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
     {/* LEFT COLUMN */}
-    <div className="lg:col-span-2 space-y-4">
-<TotalDialsToday/>
+    <div className="lg:col-span-2 space-y-4 stagger-children">
+      <TotalDialsToday/>
       <div className="flex flex-col lg:flex-row gap-4">
-    <div className="lg:w-1/3 h-100% ">
-      <DialerPerformance data={dialerPerformance} graphData={graphData} isLoading={dialerPerformanceLoading} isGraphDataLoading={graphDataLoading}/>
-    </div>
-    <div className="lg:w-2/3 h-100%">
-      <AgentsTable />
-    </div>
-  </div>
-      <CampaignPerformance data={campaignPerformance}  />
+        <div className="lg:w-1/3 h-100%">
+          <DialerPerformance data={dialerPerformance} graphData={graphData} isLoading={dialerPerformanceLoading} isGraphDataLoading={graphDataLoading}/>
+        </div>
+        <div className="lg:w-2/3 h-100%">
+          <AgentsTable />
+        </div>
+      </div>
+      <CampaignPerformance data={campaignPerformance} />
     </div>
 
     {/* RIGHT COLUMN */}
-    <div className="space-y-4">
-<LeadFunnel />
-      <div className="p-2 border border-border rounded-lg bg-card/60">
+    <div className="space-y-4 stagger-children">
+      <LeadFunnel />
+      <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth">
         <div className="flex justify-between items-center m-2 lg:mb-4">
             <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">
               Calls by Status
@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
         <CallStatusChart callStatus={callStatus} CallStatusLoading={CallStatusLoading}/>
 
-       {callStatus && !CallStatusLoading &&( <div className="mt-0 flex justify-between text-sm border-t border-slate-700 p-2 pb-0">
+       {callStatus && !CallStatusLoading &&( <div className="mt-0 flex justify-between text-sm border-t border-slate-700 p-2 pb-0 animate-fade-in">
           <span className="text-slate-300">Total Calls</span>
           <span className="font-mono text-white font-semibold">
             {callStatus.data[0].Totalcall || 0}
@@ -85,7 +85,7 @@ export default function DashboardPage() {
         </div>)}
       </div>
 
-      <HourlyPerformanceHeatmap  data ={hourlyPerformanceData}/>
+      <HourlyPerformanceHeatmap data={hourlyPerformanceData}/>
 
     </div>
   </div>

@@ -67,7 +67,7 @@ export default function CallPage() {
 
   return (
     <div className="min-h-screen p-6 bg-[hsl(231_58%_6%)] text-white">
-      <div className="mx-auto max-w-[1440px] grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="mx-auto max-w-[1440px] grid grid-cols-1 lg:grid-cols-12 gap-6 stagger-children">
         <div className="lg:col-span-12">
           <TotalDialsToday />
         </div>

@@ -179,22 +179,78 @@
 .dark-datepicker .react-datepicker__triangle {
   display: none;
 }
+/* ───────── Motion system ─────────
+   Curves:
+   - --ease-out   : Linear/Vercel-style decel; default for entrances
+   - --ease-spring: gentle overshoot for emphasis
+   Durations follow a 120/180/240/320 scale.
+*/
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.24s var(--ease-out) both;
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-in-up 0.36s var(--ease-out) both;
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.32s var(--ease-out) both;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.32s var(--ease-out) both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.32s var(--ease-out) both;
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.22s var(--ease-out) both;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.32s var(--ease-spring) both;
 }
 
 @keyframes wave {
@@ -227,15 +283,98 @@
   animation: pulse-slow 2.4s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+/* Skeleton: low-amplitude pulse that doesn't strobe.
+   Use on neutral surfaces; keep alongside .skeleton (see below). */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
 }
 
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Inline shimmer utility used inside skeleton blocks. */
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, hsl(var(--border) / 0.4), transparent);
-  background-size: 800px 100%;
-  animation: shimmer 1.6s linear infinite;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--foreground) / 0.06) 45%,
+    hsl(var(--foreground) / 0.10) 50%,
+    hsl(var(--foreground) / 0.06) 55%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s linear infinite;
+  pointer-events: none;
+}
+
+/* Skeleton base — pair with rounded/height utilities.
+   Keeps a soft surface tint and the shimmer sweep above. */
+.skeleton {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--card) / 0.6),
+    hsl(var(--card) / 0.4)
+  );
+  border: 1px solid hsl(var(--border) / 0.5);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--foreground) / 0.05) 45%,
+    hsl(var(--foreground) / 0.08) 50%,
+    hsl(var(--foreground) / 0.05) 55%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s linear infinite;
+  pointer-events: none;
+}
+
+/* Stagger helper — wrap a group with .stagger-children and direct children
+   fade-in-up with a 60ms cascade. Limited to 12 to keep CSS small. */
+.stagger-children > * {
+  animation: fade-in-up 0.42s var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1)  { animation-delay: 0ms;   }
+.stagger-children > *:nth-child(2)  { animation-delay: 60ms;  }
+.stagger-children > *:nth-child(3)  { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4)  { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5)  { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6)  { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7)  { animation-delay: 360ms; }
+.stagger-children > *:nth-child(8)  { animation-delay: 420ms; }
+.stagger-children > *:nth-child(9)  { animation-delay: 480ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children > *:nth-child(11) { animation-delay: 600ms; }
+.stagger-children > *:nth-child(12) { animation-delay: 660ms; }
+
+/* Hover lift — subtle elevation cue for cards/buttons.
+   `transition-smooth` is the project-wide motion default. */
+.transition-smooth {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-timing-function: var(--ease-out);
+  transition-duration: 200ms;
+}
+.hover-lift {
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms var(--ease-out);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
 }
 
 /* Global focus ring — keyboard users only.
@@ -266,9 +405,16 @@ textarea:-webkit-autofill {
   .animate-shimmer,
   .animate-fade-in,
   .animate-fade-in-up,
-  .animate-pulse-slow {
+  .animate-fade-in-down,
+  .animate-scale-in,
+  .animate-pop-in,
+  .animate-pulse-slow,
+  .skeleton::after,
+  .animate-shimmer::after,
+  .stagger-children > * {
     animation: none !important;
   }
+  .hover-lift:hover { transform: none !important; }
 }
 .active-call-row .ag-cell {
   background: rgba(34, 197, 94, 0.12) !important;

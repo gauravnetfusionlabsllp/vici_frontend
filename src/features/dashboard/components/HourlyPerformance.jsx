@@ -1,5 +1,6 @@
 import React from "react";
 import ReactECharts from "echarts-for-react";
+import { SkeletonChart } from "@/shared/components/ui";
 
 /**
  * Example API data (can have any number of keys)
@@ -32,7 +33,7 @@ function transformToHeatmap(data) {
 
 export default function HourlyPerformanceHeatmap({data,isLoading}) {
     return (
-        <div className="p-2 border border-border rounded-lg bg-card/60">
+        <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth">
 
           <div className="flex justify-between items-center m-2 lg:mb-4">
             <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">
@@ -141,11 +142,7 @@ function HeatmapChart({data,isLoading}) {
   );
 }
 function LoadingState() {
-    return (
-      <div className="h-full rounded-xl bg-card/60 p-4 flex items-center justify-center text-gray-400">
-        Loading Hourly Performance…
-      </div>
-    )
+    return <SkeletonChart type="bars" height={200} className="px-2" />;
   }
 
   function EmptyState() {

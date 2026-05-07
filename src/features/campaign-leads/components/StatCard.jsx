@@ -1,6 +1,6 @@
 export default function StatCard({ label, value, sub, icon: Icon, color }) {
   return (
-    <div className="flex-1 min-w-[130px] border border-border rounded-lg bg-card/60 p-4">
+    <div className="flex-1 min-w-[130px] border border-border rounded-lg bg-card/60 p-4 transition-smooth hover-lift hover:border-white/15 hover:bg-card/80">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-slate-400 uppercase tracking-wider">{label}</span>
         {Icon && <Icon className={`w-3.5 h-3.5 ${color ?? 'text-slate-500'}`} />}

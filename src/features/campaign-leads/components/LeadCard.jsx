@@ -9,8 +9,8 @@ export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, d
   return (
     <div className={`group relative overflow-hidden border rounded-xl
       bg-gradient-to-b from-slate-900/60 to-slate-950/70
-      transition-all duration-200
-      hover:shadow-[0_8px_32px_rgba(0,0,0,0.55)]
+      transition-smooth hover-lift
+      hover:shadow-[0_12px_36px_rgba(0,0,0,0.6)]
       ${status === 'live' ? 'border-emerald-500/20 hover:border-emerald-500/40' : 'border-white/8 hover:border-white/[0.14]'}
     `}>
       {status === 'live' && (
@@ -33,7 +33,7 @@ export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, d
               onClick={() => onToggle(lead.id)}
               disabled={toggling}
               title={lead.isactive ? 'Pause rule' : 'Resume rule'}
-              className={`h-8 w-8 grid place-items-center rounded-lg border transition
+              className={`h-8 w-8 grid place-items-center rounded-lg border transition-smooth active:scale-90
                 ${lead.isactive
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-300'
                   : 'border-slate-600/40 bg-slate-800/40 text-slate-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-300'
@@ -50,7 +50,7 @@ export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, d
               onClick={() => onDelete(lead)}
               disabled={deleting}
               title="Delete rule"
-              className="h-8 w-8 grid place-items-center rounded-lg border transition
+              className="h-8 w-8 grid place-items-center rounded-lg border transition-smooth active:scale-90
                 border-rose-500/25 bg-rose-500/5 text-rose-300/80
                 hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-300
                 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -83,7 +83,7 @@ export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, d
           className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-700/60
             py-1.5 text-[11px] text-slate-500 font-medium tracking-wider uppercase
             hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5
-            transition-all duration-150"
+            transition-smooth active:scale-[0.98]"
         >
           <ChevronsRight className="w-3.5 h-3.5" />
           Sync this rule

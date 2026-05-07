@@ -12,6 +12,7 @@ import Modal from './Modal';
 import TemplateForm from './TemplateForm';
 import TemplateCard from './TemplateCard';
 import { getFileIcon } from '../utils';
+import { SkeletonCard } from '@/shared/components/ui';
 
 export default function TemplatesTab() {
   const { success, error } = useToast();
@@ -74,11 +75,15 @@ export default function TemplatesTab() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-7 h-7 animate-spin text-sky-400" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} rows={2} withFooter />
+          ))}
+        </div>
       ) : templates.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-4">
-          <div className="h-14 w-14 rounded-xl bg-slate-800/60 border border-white/10 grid place-items-center">
-            <Mail className="w-6 h-6 text-slate-600" />
+        <div className="py-16 flex flex-col items-center gap-4 animate-fade-in-up">
+          <div className="h-14 w-14 rounded-xl bg-slate-800/60 border border-white/10 grid place-items-center animate-pop-in">
+            <Mail className="w-6 h-6 text-slate-600 animate-pulse-slow" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-slate-400">No templates yet</p>
@@ -86,12 +91,12 @@ export default function TemplatesTab() {
           </div>
           <button onClick={() => setCreateOpen(true)}
             className="flex items-center gap-2 rounded-lg border border-sky-600/40 bg-sky-600/20 px-4 py-2
-              text-sm font-semibold text-sky-200 hover:bg-sky-600/30 transition">
+              text-sm font-semibold text-sky-200 hover:bg-sky-600/30 transition-smooth active:scale-[0.97]">
             <Plus className="w-4 h-4" /> Create Template
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {templates.map((tpl) => (
             <TemplateCard key={tpl.id} tpl={tpl} onEdit={setEditTarget} onDelete={setDeleteTarget} onView={setViewTarget} />
           ))}

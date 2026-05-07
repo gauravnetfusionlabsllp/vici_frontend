@@ -12,7 +12,7 @@ export function ComplianceStats({ allData }) {
     } = allData || {};
 
     return (
-      <div className="p-2 border border-border rounded-lg bg-card/60">
+      <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up">
         <div className="m-2 lg:mb-4">
           <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">
           <Users className="w-4 h-4 text-emerald-400" />
@@ -20,7 +20,7 @@ export function ComplianceStats({ allData }) {
           </h3>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 stagger-children">
           {/* Dialer Level */}
           <StatCard label="DND Violations" value={dnd_violations} />
           <StatCard label="Callback SLA:Missed" value={callback_sla_raised} />
@@ -40,7 +40,7 @@ export function ComplianceStats({ allData }) {
   }
   function StatCard({ label, value }) {
     return (
-      <div className="border border-border rounded-md bg-card/10 shadow-[0_8px_30px_rgba(0,0,0,0.45)] p-4">
+      <div className="border border-border rounded-md bg-card/10 shadow-[0_8px_30px_rgba(0,0,0,0.45)] p-4 transition-smooth hover-lift hover:border-emerald-500/40">
         <p className="text-lg mb-2">
           {label}
         </p>

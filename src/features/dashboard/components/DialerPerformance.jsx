@@ -8,6 +8,7 @@ import {
   PolarAngleAxis,
 } from "recharts"
 import { useMemo } from "react"
+import { Skeleton, SkeletonChart } from "@/shared/components/ui"
 
 /* Sparkline demo data */
 const sparkData = [
@@ -58,7 +59,7 @@ export default function DialerPerformance({ data, isLoading ,graphData,isGraphDa
   /* ------------------ RENDER ------------------ */
 
   return (
-    <div className="p-2 h-full border border-border rounded-lg bg-card/60">
+    <div className="p-2 h-full border border-border rounded-lg bg-card/60 animate-fade-in-up">
       {/* HEADER */}
       <Header />
 
@@ -230,8 +231,40 @@ function MetricSpark({ label, value, color ,data }) {
 
 function LoadingState() {
   return (
-    <div className="h-full rounded-xl bg-card/60 p-4 flex items-center justify-center text-gray-400">
-      Loading Dialer Performance…
+    <div className="p-2 h-full border border-border rounded-lg bg-card/60 animate-fade-in">
+      <Header />
+      <div className="border border-border rounded-sm p-2 space-y-2">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <div className="p-2 space-y-2">
+              <Skeleton className="h-2.5 w-20" />
+              <Skeleton className="h-7 w-16" />
+            </div>
+            <div className="p-2 pb-0 border-t border-white/10 space-y-2">
+              <Skeleton className="h-2.5 w-28" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+          </div>
+          <SkeletonChart type="gauge" height={140} />
+        </div>
+        <div className="py-2 border-t border-white/10 grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-20" />
+            <Skeleton className="h-6 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-24" />
+            <Skeleton className="h-6 w-full" />
+          </div>
+        </div>
+        <div className="border-t border-white/10 pt-2 space-y-2">
+          <div className="flex items-end justify-between">
+            <Skeleton className="h-2.5 w-24" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <Skeleton className="h-5 w-full" />
+        </div>
+      </div>
     </div>
   )
 }

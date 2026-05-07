@@ -7,6 +7,7 @@ import {
   Legend,
   Tooltip,
 } from 'recharts';
+import { SkeletonChart } from '@/shared/components/ui';
 
 const STATUS_COLORS = {
   READY: '#3b82f6',
@@ -43,12 +44,10 @@ export function CallStatusChart({ callStatus ,CallStatusLoading = true}) {
 
   const hasData = data.length > 0;
 return CallStatusLoading ? (
-    <div className="flex items-center justify-center h-[170px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
+    <SkeletonChart type="pie" height={170} />
   ) :
    (
-    <div className="relative w-full h-[170px]">
+    <div className="relative w-full h-[170px] animate-fade-in">
       {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">
           No call data
@@ -71,7 +70,7 @@ return CallStatusLoading ? (
               <Cell
                 key={index}
                 fill={entry.color}
-                className="transition-opacity hover:opacity-80"
+                className="transition-opacity duration-200 hover:opacity-80"
               />
             ))}
           </Pie>

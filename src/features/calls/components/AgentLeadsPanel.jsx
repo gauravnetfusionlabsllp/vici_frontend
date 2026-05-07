@@ -3,6 +3,7 @@ import { useGetAgentWiseLeadQuery } from "@/services";
 import { useDispatch, useSelector } from "react-redux";
 import { selectFormNameFilter, setFormNameFilter, setIsAvailableLeads } from "@/features/calls/slices/dialSlice";
 import { selectCampaingName } from "@/features/auth/slices/authSlice";
+import { SkeletonAvatarRow } from "@/shared/components/ui";
 
 
 function safeText(v) {
@@ -76,17 +77,15 @@ export default function AgentLeadsPanel() {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 p-3">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-14 animate-pulse rounded-xl bg-white/5" />
-        ))}
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/70 to-slate-950/80 shadow-[0_30px_120px_rgba(0,0,0,0.55)] p-3">
+        <SkeletonAvatarRow count={6} />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-3 text-sm text-red-400">Failed to load leads</div>
+      <div className="p-3 text-sm text-red-400 animate-fade-in">Failed to load leads</div>
     );
   }
 
@@ -95,7 +94,7 @@ export default function AgentLeadsPanel() {
       className="relative overflow-hidden rounded-2xl border border-white/10
                  bg-gradient-to-b from-slate-900/70 to-slate-950/80
                  shadow-[0_30px_120px_rgba(0,0,0,0.55)]
-                 max-h-[500px] overflow-y-auto"
+                 max-h-[500px] overflow-y-auto transition-smooth"
     >
       {/* Glow */}
       <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(700px_circle_at_15%_0%,rgba(56,189,248,0.16),transparent_55%),radial-gradient(700px_circle_at_90%_10%,rgba(168,85,247,0.14),transparent_55%)]" />
@@ -136,9 +135,9 @@ export default function AgentLeadsPanel() {
       </div>
 
       {/* ── Lead rows ── */}
-      <div className="relative">
+      <div className="relative stagger-children">
         {leads.length === 0 ? (
-          <div className="p-4 text-sm text-slate-400">No Leads right now.</div>
+          <div className="p-4 text-sm text-slate-400 animate-fade-in">No Leads right now.</div>
         ) : (
           leads.map((lead) => {
             const fullName = [
@@ -152,7 +151,7 @@ export default function AgentLeadsPanel() {
             return (
               <div
                 key={lead?.lead_id}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10"
+                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 transition-smooth"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-semibold text-white">
                   {initials(lead?.first_name, lead?.last_name)}

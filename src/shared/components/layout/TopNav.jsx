@@ -236,8 +236,8 @@ export default function TopNav() {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `text-sm transition ${isActive
-                    ? "text-primary font-semibold"
+                  `relative text-sm transition-smooth ${isActive
+                    ? "text-primary font-semibold after:absolute after:left-0 after:right-0 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-primary after:animate-fade-in"
                     : "text-muted-foreground hover:text-foreground"
                   }`
                 }
@@ -263,7 +263,7 @@ export default function TopNav() {
               </div>
               <button
                 onClick={handleLogout}
-                className="ml-1 p-1.5 rounded-md hover:bg-slate-700 text-muted-foreground hover:text-red-400 transition"
+                className="ml-1 p-1.5 rounded-md hover:bg-slate-700 text-muted-foreground hover:text-red-400 transition-smooth active:scale-90"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4" />
@@ -279,7 +279,7 @@ export default function TopNav() {
 
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 rounded-md hover:bg-slate-800/60"
+            className="md:hidden p-2 rounded-md hover:bg-slate-800/60 transition-smooth active:scale-90"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -329,7 +329,7 @@ export default function TopNav() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-950 px-6 py-4 space-y-3">
+        <div className="md:hidden border-t border-slate-800 bg-slate-950 px-6 py-4 space-y-3 animate-fade-in-down">
           {user && (
             <div className="flex items-center justify-between px-3 py-2 rounded-md bg-slate-800/60 border border-slate-700">
               <div>
