@@ -93,6 +93,8 @@ function MultiSelectDropdown({
   selected,
   onChange,
   loading,
+  disabled,
+  disabledHint,
   required,
   placeholder = 'Select one or more…',
   emptyLabel = 'No options for this date range',
@@ -100,6 +102,12 @@ function MultiSelectDropdown({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const wrapRef = useRef(null);
+
+  const isInactive = loading || disabled;
+
+  useEffect(() => {
+    if (disabled && open) setOpen(false);
+  }, [disabled, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,7 +144,7 @@ function MultiSelectDropdown({
       <div className="relative">
         <button
           type="button"
-          disabled={loading}
+          disabled={isInactive}
           onClick={() => setOpen((o) => !o)}
           className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-slate-900/80 px-3 py-2.5 text-sm text-left transition
             disabled:opacity-40 disabled:cursor-not-allowed
@@ -145,12 +153,14 @@ function MultiSelectDropdown({
           <span className="truncate">
             {loading
               ? <span className="text-slate-500 inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…</span>
-              : selected.length === 0
-                ? <span className="text-slate-500">{placeholder}</span>
-                : <span className="text-slate-100">
-                    <span className="font-semibold text-sky-300">{selected.length}</span>
-                    <span className="text-slate-400"> of {options.length} selected</span>
-                  </span>
+              : disabled
+                ? <span className="text-slate-500 italic">{disabledHint || placeholder}</span>
+                : selected.length === 0
+                  ? <span className="text-slate-500">{placeholder}</span>
+                  : <span className="text-slate-100">
+                      <span className="font-semibold text-sky-300">{selected.length}</span>
+                      <span className="text-slate-400"> of {options.length} selected</span>
+                    </span>
             }
           </span>
           <ChevronDown className={`w-4 h-4 text-slate-500 transition shrink-0 ${open ? 'rotate-180 text-sky-400' : ''}`} />
@@ -249,6 +259,45 @@ function MultiSelectDropdown({
   );
 }
 
+function DiscardConfirm({ onKeep, onDiscard }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-rose-500/25
+        bg-gradient-to-b from-slate-900/95 to-slate-950/95
+        shadow-[0_30px_120px_rgba(0,0,0,0.8)] overflow-hidden animate-[fadeIn_0.15s_ease-out]">
+        <div className="px-6 py-5 border-b border-white/10 flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-rose-500/15 border border-rose-500/30 grid place-items-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-rose-300" />
+          </div>
+          <div>
+            <div className="text-[10px] text-rose-400 uppercase tracking-widest mb-1">Unsaved changes</div>
+            <h3 className="text-base font-semibold text-slate-100">Discard this rule?</h3>
+            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+              You'll lose everything you've filled in. The rule has not been saved yet.
+            </p>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-slate-950/40 flex gap-3">
+          <button
+            autoFocus
+            onClick={onKeep}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-sky-500/40 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25 text-sm font-semibold transition"
+          >
+            Keep editing
+          </button>
+          <button
+            onClick={onDiscard}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 text-sm font-semibold transition"
+          >
+            Discard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onConfirm }) {
   const Row = ({ label, value, accent }) => (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-white/5 last:border-b-0">
@@ -268,11 +317,9 @@ function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onCo
 
   return (
     <div
-      onClick={onCancel}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl border border-emerald-500/20
           bg-gradient-to-b from-slate-900/95 to-slate-950/95
           shadow-[0_30px_120px_rgba(0,0,0,0.75)] overflow-hidden animate-[fadeIn_0.18s_ease-out]"
@@ -341,6 +388,7 @@ export default function CreateRuleModal({ open, onClose }) {
   const [step, setStep] = useState(1);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [closeRequested, setCloseRequested] = useState(false);
 
   // Date params drive the lead-filters API so step 2 only shows
   // sources / campaigns / forms that actually have leads in the chosen window.
@@ -381,8 +429,62 @@ export default function CreateRuleModal({ open, onClose }) {
       setStep(1);
       setConfirmOpen(false);
       setSubmitting(false);
+      setCloseRequested(false);
     }
   }, [open]);
+
+  // New API shape: { forms: [{ form_name, sources: [...], campaign_names: [...] }] }
+  // Cascade: source → narrows campaign options → narrows form options
+  const formsData = filtersData?.forms ?? [];
+
+  const sourceOpts = useMemo(() => {
+    const acc = new Set();
+    formsData.forEach((f) => (f?.sources ?? []).forEach((s) => s && acc.add(s)));
+    return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
+  }, [formsData]);
+
+  const campaignNameOpts = useMemo(() => {
+    if (form.sources.length === 0) return [];
+    const acc = new Set();
+    formsData.forEach((f) => {
+      const sourceHit = (f?.sources ?? []).some((s) => form.sources.includes(s));
+      if (!sourceHit) return;
+      (f?.campaign_names ?? []).forEach((c) => c && acc.add(c));
+    });
+    return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
+  }, [formsData, form.sources]);
+
+  const formNameOpts = useMemo(() => {
+    if (form.sources.length === 0) return [];
+    const acc = new Set();
+    formsData.forEach((f) => {
+      const sourceHit = (f?.sources ?? []).some((s) => form.sources.includes(s));
+      if (!sourceHit) return;
+      if (form.campaign_names.length > 0) {
+        const campaignHit = (f?.campaign_names ?? []).some((c) => form.campaign_names.includes(c));
+        if (!campaignHit) return;
+      }
+      if (f?.form_name) acc.add(f.form_name);
+    });
+    return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
+  }, [formsData, form.sources, form.campaign_names]);
+
+  // Auto-prune selected campaigns / forms when their parent filter narrows them away
+  useEffect(() => {
+    const valid = new Set(campaignNameOpts.map((o) => o.value));
+    setForm((f) => {
+      const next = f.campaign_names.filter((v) => valid.has(v));
+      return next.length === f.campaign_names.length ? f : { ...f, campaign_names: next };
+    });
+  }, [campaignNameOpts]);
+
+  useEffect(() => {
+    const valid = new Set(formNameOpts.map((o) => o.value));
+    setForm((f) => {
+      const next = f.form_names.filter((v) => valid.has(v));
+      return next.length === f.form_names.length ? f : { ...f, form_names: next };
+    });
+  }, [formNameOpts]);
 
   if (!open) return null;
 
@@ -393,17 +495,19 @@ export default function CreateRuleModal({ open, onClose }) {
   const step3Valid = !!form.destination_campaign;
   const allValid   = step1Valid && step2Valid && step3Valid;
 
-  const sourceOpts = (filtersData?.sources ?? [])
-    .filter(Boolean)
-    .map((s) => ({ value: s, label: s }));
+  // Any user input means a close attempt should ask for confirmation
+  const dirty = !!(
+    form.startDate || form.endDate ||
+    form.sources.length || form.campaign_names.length || form.form_names.length ||
+    form.destination_campaign ||
+    !form.isActive
+  );
 
-  const campaignNameOpts = (filtersData?.campaign_names ?? [])
-    .filter(Boolean)
-    .map((n) => ({ value: n, label: n }));
-
-  const formNameOpts = (filtersData?.form_names ?? [])
-    .filter(Boolean)
-    .map((f) => ({ value: f, label: f }));
+  const requestClose = () => {
+    if (submitting) return;
+    if (dirty) setCloseRequested(true);
+    else onClose();
+  };
 
   const destinationOpts = (campaignList?.data ?? []).map((c) => ({
     value: c.campaign_id,
@@ -447,11 +551,9 @@ export default function CreateRuleModal({ open, onClose }) {
 
   return (
     <div
-      onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-2xl rounded-2xl border border-white/10
           bg-gradient-to-b from-slate-900/95 to-slate-950/95
           shadow-[0_30px_120px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[92vh]"
@@ -468,7 +570,8 @@ export default function CreateRuleModal({ open, onClose }) {
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={requestClose}
+              title={dirty ? 'Discard changes' : 'Close'}
               className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-white transition"
             >
               <X className="w-4 h-4" />
@@ -576,9 +679,10 @@ export default function CreateRuleModal({ open, onClose }) {
                   <div>
                     <div className="text-sm font-semibold text-slate-100">Choose what to match</div>
                     <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Pick one or more values from each dropdown. The rule will match any lead
-                      whose source / campaign / form is in your selection (OR-match per field, AND-match across fields).
-                      Source is required; campaign and form are optional.
+                      Selections cascade: pick a <span className="text-sky-300 font-medium">Source</span> first,
+                      then the available <span className="text-sky-300 font-medium">Campaigns</span> and
+                      {' '}<span className="text-sky-300 font-medium">Forms</span> are filtered to only those
+                      tied to that source. Source is required; campaign and form are optional refinements.
                     </p>
                   </div>
                 </div>
@@ -615,7 +719,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     label="Source"
                     required
                     icon={Tag}
-                    hint="The lead source / channel (e.g. Meta, Google, Instagram). Pick at least one."
+                    hint="The lead source / channel (e.g. Meta, Google, Instagram). Drives the campaign and form options below."
                     placeholder="Select source(s)…"
                     options={sourceOpts}
                     selected={form.sources}
@@ -627,25 +731,37 @@ export default function CreateRuleModal({ open, onClose }) {
                   <MultiSelectDropdown
                     label="Campaign Name"
                     icon={Layers}
-                    hint="Select campaigns that match the chosen lead source (e.g., Meta campaigns for Meta source)."
+                    hint={
+                      form.sources.length === 0
+                        ? "Pick a source above first — campaign options depend on it."
+                        : `Optional. ${campaignNameOpts.length} campaign${campaignNameOpts.length === 1 ? '' : 's'} available for the selected source${form.sources.length === 1 ? '' : 's'}.`
+                    }
                     placeholder="Any campaign — pick to narrow down…"
+                    disabledHint="Pick a source first…"
+                    disabled={form.sources.length === 0}
                     options={campaignNameOpts}
                     selected={form.campaign_names}
                     onChange={(arr) => set('campaign_names', arr)}
                     loading={filtersFetching}
-                    emptyLabel="No campaigns found in this date range"
+                    emptyLabel="No campaigns tied to the selected source(s)"
                   />
 
                   <MultiSelectDropdown
                     label="Form Name"
                     icon={FileText}
-                    hint="Select form names that match the chosen campaign and lead source."
+                    hint={
+                      form.sources.length === 0
+                        ? "Pick a source above first — form options depend on it."
+                        : `Optional. ${formNameOpts.length} form${formNameOpts.length === 1 ? '' : 's'} available for your current source${form.campaign_names.length > 0 ? ' & campaign' : ''} selection.`
+                    }
                     placeholder="Any form — pick to narrow down…"
+                    disabledHint="Pick a source first…"
+                    disabled={form.sources.length === 0}
                     options={formNameOpts}
                     selected={form.form_names}
                     onChange={(arr) => set('form_names', arr)}
                     loading={filtersFetching}
-                    emptyLabel="No forms found in this date range"
+                    emptyLabel="No forms tied to the selected source(s) / campaign(s)"
                   />
                 </>
               )}
@@ -744,7 +860,7 @@ export default function CreateRuleModal({ open, onClose }) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10 bg-slate-950/40 shrink-0 flex items-center justify-between gap-3">
           <button
-            onClick={step === 1 ? onClose : handleBack}
+            onClick={step === 1 ? requestClose : handleBack}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/8 text-sm transition"
           >
             {step === 1 ? 'Cancel' : (<><ChevronLeft className="w-4 h-4" /> Back</>)}
@@ -787,6 +903,13 @@ export default function CreateRuleModal({ open, onClose }) {
           submitting={submitting || isLoading}
           onCancel={() => setConfirmOpen(false)}
           onConfirm={handleConfirmCreate}
+        />
+      )}
+
+      {closeRequested && (
+        <DiscardConfirm
+          onKeep={() => setCloseRequested(false)}
+          onDiscard={() => { setCloseRequested(false); onClose(); }}
         />
       )}
 
