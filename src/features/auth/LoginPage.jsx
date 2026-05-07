@@ -6,6 +6,7 @@ import { setUser } from "@/features/auth/slices/authSlice";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff } from "lucide-react";
 import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
+import BrandMark from "@/shared/components/BrandMark";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,28 +109,41 @@ export default function Login() {
     (role === "agent" && (!selectedCampaign?.campaign_id || !selectedCampaign?.campaign_name));
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[hsl(231_58%_6%)]">
-      <div className="w-full max-w-md p-8 rounded-2xl bg-[hsl(229_56%_13%)] shadow-xl border border-white/10">
-        <h1 className="text-2xl font-semibold text-white text-center mb-6">
-          Vicidial Login
-        </h1>
+    <div className="relative min-h-screen flex items-center justify-center bg-background overflow-hidden px-4">
+      <div className="pointer-events-none absolute inset-0 opacity-80
+                      bg-[radial-gradient(800px_circle_at_15%_15%,hsl(var(--primary)/0.18),transparent_55%),radial-gradient(700px_circle_at_85%_85%,rgba(34,211,238,0.12),transparent_55%)]"
+           aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.12)_1px,transparent_1px)] [background-size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+           aria-hidden="true" />
+
+      <div className="relative w-full max-w-md p-8 rounded-2xl bg-card/80 backdrop-blur-xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] border border-border animate-fade-in-up">
+        <div className="flex flex-col items-center gap-3 mb-7">
+          <BrandMark size="lg" showWordmark={false} />
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-foreground font-display tracking-tight">
+              Welcome back
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sign in to your Outbound Dialer workspace
+            </p>
+          </div>
+        </div>
 
         {error && (
-          <p className="bg-red-500/10 text-red-400 p-2 rounded mb-4 text-sm">
+          <p className="bg-destructive/10 text-destructive border border-destructive/20 p-2.5 rounded-md mb-4 text-sm animate-fade-in">
             {error}
           </p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ✅ Role choice */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-secondary/40 border border-border">
             <button
               type="button"
               onClick={() => handleRoleChange("admin")}
-              className={`flex items-center justify-center gap-2 py-2 rounded-lg border text-sm transition
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm transition-all duration-200
                 ${role === "admin"
-                  ? "bg-indigo-600 text-white border-indigo-500"
-                  : "bg-slate-900/60 text-slate-200 border-white/10 hover:bg-slate-900"
+                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.6)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
             >
               <Shield size={16} />
@@ -139,10 +153,10 @@ export default function Login() {
             <button
               type="button"
               onClick={() => handleRoleChange("agent")}
-              className={`flex items-center justify-center gap-2 py-2 rounded-lg border text-sm transition
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm transition-all duration-200
                 ${role === "agent"
-                  ? "bg-indigo-600 text-white border-indigo-500"
-                  : "bg-slate-900/60 text-slate-200 border-white/10 hover:bg-slate-900"
+                  ? "bg-primary text-primary-foreground shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.6)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
             >
               <Headset size={16} />
@@ -150,43 +164,44 @@ export default function Login() {
             </button>
           </div>
 
-          <div className="relative">
-            <User className="absolute left-3 top-3 text-slate-400" size={18} />
+          <div className="relative group">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
             <input
               name="username"
               placeholder="Username"
               onChange={handleChange}
               value={form.username}
-              className="w-full pl-10 pr-3 py-2 rounded-lg bg-slate-900 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="username"
+              className="w-full pl-10 pr-3 py-2.5 rounded-md bg-background/60 border border-border text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all"
             />
           </div>
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+          <div className="relative group">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
             <input
-            onBlur={() => setShowPassword(false)}
-             type={showPassword ? "text" : "password"}
+              onBlur={() => setShowPassword(false)}
+              type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Password"
               onChange={handleChange}
               value={form.password}
-              className="w-full pl-10 pr-3 py-2 rounded-lg bg-slate-900 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="current-password"
+              className="w-full pl-10 pr-10 py-2.5 rounded-md bg-background/60 border border-border text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all"
             />
-
-<button
-    type="button"
-    onClick={() => setShowPassword((v) => !v)}
-    className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition"
-    tabIndex={-1}
-  >
-    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-  </button>
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
-          {/* ✅ Campaign only for agent */}
           {role === "agent" && (
-            <div className="relative campaign-select">
-              <Briefcase className="absolute left-3 top-3 text-slate-400" size={18} />
+            <div className="relative campaign-select group animate-fade-in">
+              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" size={18} />
               <select
                 onMouseDown={handleMouseDown}
                 onClick={handleClick}
@@ -200,21 +215,10 @@ export default function Login() {
                     c ? { campaign_id: c.campaign_id, campaign_name: c.campaign_name } : null
                   );
                 }}
-                className="
-                  w-full
-                  pl-10 pr-3 py-2
-                  rounded-lg
-                  bg-slate-900
-                  border border-white/10
-                  text-white
-                  outline-none
-                  appearance-none
-                  focus:ring-2 focus:ring-indigo-500
-                  disabled:opacity-50
-                "
+                className="w-full pl-10 pr-9 py-2.5 rounded-md bg-background/60 border border-border text-foreground outline-none appearance-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="" disabled>
-                  {campaingListLoading ? "Loading campaigns..." : "Select Campaign"}
+                  {campaingListLoading ? "Loading campaigns…" : "Select Campaign"}
                 </option>
 
                 {campaingList?.data?.map((c) => (
@@ -226,7 +230,7 @@ export default function Login() {
 
               <ChevronDown
                 size={18}
-                className={`absolute right-3 top-3 text-slate-400 pointer-events-none transition-transform duration-200 ${
+                className={`absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none transition-transform duration-200 ${
                   isSelectOpen ? "rotate-180" : ""
                 }`}
               />
@@ -235,10 +239,14 @@ export default function Login() {
 
           <button
             disabled={loginDisabled}
-            className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:hover:bg-indigo-600 text-white flex items-center justify-center gap-2"
+            className="w-full py-2.5 mt-2 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium
+                       shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.65)]
+                       transition-all duration-200 active:scale-[0.99]
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary
+                       flex items-center justify-center gap-2"
           >
             {isLoading && <Loader2 className="animate-spin" size={18} />}
-            Login
+            {isLoading ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

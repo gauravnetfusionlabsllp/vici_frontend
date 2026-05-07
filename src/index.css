@@ -187,6 +187,89 @@
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(1);    opacity: 0.55; }
+  50%      { transform: scaleY(0.45); opacity: 0.95; }
+}
+
+.animate-wave {
+  animation: wave 1.8s ease-in-out infinite;
+  transform-origin: bottom;
+  will-change: transform, opacity;
+}
+
+@keyframes trail {
+  0%   { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-trail {
+  animation: trail 2.6s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.55;transform: scale(0.85); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(var(--border) / 0.4), transparent);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Global focus ring — keyboard users only.
+   Scoped to explicit interactive elements; ag-Grid cells use [tabindex] and are intentionally skipped. */
+:where(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.65);
+}
+
+/* Browser autofill — preserve dark theme over Chrome/Edge/Safari yellow-white default */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
+  box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--foreground));
+  border-color: hsl(var(--border)) !important;
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave,
+  .animate-trail,
+  .animate-shimmer,
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-pulse-slow {
+    animation: none !important;
+  }
+}
 .active-call-row .ag-cell {
   background: rgba(34, 197, 94, 0.12) !important;
 }
@@ -194,8 +277,27 @@
 .active-call-row:hover .ag-cell {
   background: rgba(34, 197, 94, 0.18) !important;
 }
-.campaign-select select option:checked,
-.campaign-select select option:hover {
-  background-color: rgb(99 102 241) !important; /* indigo-500 */
-  color: white;
+/* Native form chrome — render select dropdown panel, arrow, scrollbar in dark */
+select,
+input,
+textarea {
+  color-scheme: dark;
+}
+
+/* Themed <option> items in any native select */
+select option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  padding: 8px 10px;
+}
+
+select option:disabled {
+  color: hsl(var(--muted-foreground));
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background: linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary))) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }

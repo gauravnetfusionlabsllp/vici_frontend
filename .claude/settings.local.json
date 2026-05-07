@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite *)",
+      "Bash(npx eslint *)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const css=fs.readFileSync\\('dist/assets/index-D2yELtMW.css','utf8'\\);const m=css.match\\(/@keyframes\\\\s+pulse\\\\s*\\\\{[^}]+\\\\}/g\\);console.log\\(m||'no @keyframes pulse'\\);console.log\\('---'\\);const a=css.match\\(/\\\\.animate-pulse\\\\s*\\\\{[^}]+\\\\}/g\\);console.log\\(a||'no .animate-pulse'\\);\")"
+    ]
+  }
+}

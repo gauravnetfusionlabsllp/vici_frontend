@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { BarChart, ChevronRight, Loader2, LogOut, Menu, User, X } from "lucide-react";
+import { ChevronRight, Loader2, LogOut, Menu, User, X } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
@@ -13,6 +13,8 @@ import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState } from "@/f
 import { selectDateRange, setDateRange } from "@/features/dashboard/slices/dateFilterSlice";
 import { dashboardApi, useDialNextMutation } from "@/services";
 import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
+import { useToast } from "@/shared/hooks/useToast";
+import BrandMark from "@/shared/components/BrandMark";
 
 const adminNavItems = [
   { name: "Dashboard", path: "/" },
@@ -51,6 +53,7 @@ export default function TopNav() {
   const isCallBusy = useSelector(selectIsCallBusy);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { error: toastError } = useToast();
   const today = useMemo(() => new Date(), []);
   const dateRange = useSelector(selectDateRange);
   const formNameFilter = useSelector(selectFormNameFilter);
@@ -104,7 +107,7 @@ export default function TopNav() {
       const res = await dialNext(dialParams).unwrap();
 
       if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-        alert(res.vicidial_response);
+        toastError(res.vicidial_response);
         dispatch(setCallState(CALL_STATE.IDLE));
         return;
       }
@@ -114,7 +117,7 @@ export default function TopNav() {
       dispatch(resetAutoDialTime());
     } catch (e) {
       dispatch(setCallState(CALL_STATE.IDLE));
-      alert("Failed to dial next. Please try again.");
+      toastError("Failed to dial next. Please try again.");
       dispatch(resetAutoDialTime());
     }
   }, [
@@ -124,6 +127,7 @@ export default function TopNav() {
     dialNext,
     dispatch,
     navigate,
+    toastError,
   ]);
 
   const { isPaused, autoDialTime } = useSelector((e) => e.dial);
@@ -181,15 +185,13 @@ export default function TopNav() {
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-md">
       <div className="relative mx-auto max-w-[1440px] h-full px-6 flex items-center">
-        <div className="flex items-center gap-3">
-          <div className="h-6 w-6 rounded-md bg-primary flex items-center text-sm justify-center">
-            cc
-          </div>
-          <BarChart className="w-5 h-5 text-green-500" />
-          <h1 className="text-base font-semibold tracking-tight">
-            Outbound Dialer – {isAdmin ? "Admin" : "Agent"}
-          </h1>
-        </div>
+        <NavLink
+          to={!user ? "/login" : isAdmin ? "/" : "/call"}
+          className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-opacity hover:opacity-90 active:opacity-80"
+          aria-label="Go to home"
+        >
+          <BrandMark role={user ? (isAdmin ? "Admin Console" : "Agent Workspace") : null} />
+        </NavLink>
 
         {user &&  !hideDatePicker && <div className="hidden md:flex items-center gap-2 mx-2">
           <span className="text-sm text-slate-400">From:</span>
@@ -227,22 +229,24 @@ export default function TopNav() {
           />
         </div>}
 
-        <div className="hidden md:flex items-center gap-6 px-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `text-sm transition ${isActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-                }`
-              }
-            >
-              {item.name}
-            </NavLink>
-          ))}
-        </div>
+        {user && (
+          <div className="hidden md:flex items-center gap-6 px-2">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `text-sm transition ${isActive
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                  }`
+                }
+              >
+                {item.name}
+              </NavLink>
+            ))}
+          </div>
+        )}
 
         <div className="ml-auto flex items-center gap-4">
           {user && (
@@ -288,29 +292,35 @@ export default function TopNav() {
               handleDialNextCb();
             }}
             disabled={isDialing || isCallBusy || isPaused || !isAvailableLeads}
-            className="hidden md:flex items-center gap-3 px-5 py-2 rounded-xl border border-cyan-400/20
+            className="group hidden md:flex items-center gap-3 px-5 py-2 rounded-xl border border-cyan-400/20
                          bg-gradient-to-r from-cyan-900/50 via-sky-900/40 to-indigo-900/40
                          hover:from-cyan-900/70 hover:via-sky-900/60 hover:to-indigo-900/60
-                         shadow-[0_0_30px_rgba(34,211,238,0.15)] transition"
+                         shadow-[0_0_30px_rgba(34,211,238,0.15)]
+                         transition-all duration-200 active:scale-[0.98]
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60
+                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-900/50 disabled:hover:via-sky-900/40 disabled:hover:to-indigo-900/40"
             title="Dial Next"
+            aria-label={!isAvailableLeads ? "No leads available" : `Dial next lead in ${nextDialIn} seconds`}
           >
             <div className="flex items-center gap-2">
               {isDialing ? (
                 <Loader2 className="w-4 h-4 animate-spin text-cyan-200" />
               ) : (
-                <ChevronRight className="w-5 h-5 text-cyan-200" />
+                <ChevronRight className="w-5 h-5 text-cyan-200 transition-transform group-hover:translate-x-0.5" />
               )}
-              <span className="tracking-widest text-xs font-semibold text-cyan-100">
+              <span className="tracking-widest text-xs font-semibold text-cyan-100 font-mono-nums">
               {!isAvailableLeads ? "No Leads" : `DIAL NEXT in ${nextDialIn}`}
               </span>
             </div>
 
-            <div className="flex items-end gap-1 opacity-80">
+            <div className="flex items-end gap-1 h-4">
               {[6, 10, 7, 14, 9, 12].map((h, i) => (
                 <span
                   key={i}
-                  className="w-1 rounded-sm bg-cyan-300/60"
-                  style={{ height: h }}
+                  className={`w-1 rounded-sm bg-cyan-300/70 origin-bottom ${
+                    isDialing || (isAvailableLeads && !isPaused) ? "animate-wave" : ""
+                  }`}
+                  style={{ height: h, animationDelay: `${i * 110}ms` }}
                 />
               ))}
             </div>
@@ -397,7 +407,7 @@ export default function TopNav() {
               )}
             </button>
           )}
-          {navItems.map((item) => (
+          {user && navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
