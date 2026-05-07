@@ -8,14 +8,16 @@ import { useToast } from '@/shared/hooks/useToast';
 import {
   useGetCampaignLeadsQuery,
   useToggleCampaignLeadActiveMutation,
+  useDeleteCampaignLeadMutation,
 } from '@/services';
-import { routeStatus, FILTERS } from './utils';
+import { routeStatus, fmtDate, FILTERS } from './utils';
 import StatCard from './components/StatCard';
 import LeadCard from './components/LeadCard';
 import SyncDrawer from './components/SyncDrawer';
 import CreateRuleModal from './components/CreateRuleModal';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import EmptyState from './components/EmptyState';
+import ConfirmDeletePopup from '@/shared/components/ConfirmDeletePopup';
 
 export default function CampaignLeadsPage() {
   const { success, error } = useToast();
@@ -26,9 +28,11 @@ export default function CampaignLeadsPage() {
   });
 
   const [toggleActive] = useToggleCampaignLeadActiveMutation();
+  const [deleteLead, { isLoading: deleteLoading }] = useDeleteCampaignLeadMutation();
   const [togglingId, setTogglingId] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [syncLead,   setSyncLead]   = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [filter,     setFilter]     = useState('all');
 
   const handleToggle = useCallback(async (id) => {
@@ -42,6 +46,17 @@ export default function CampaignLeadsPage() {
       setTogglingId(null);
     }
   }, [toggleActive, success, error]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteLead(deleteTarget.id).unwrap();
+      success(`Rule #${deleteTarget.id} deleted`);
+      setDeleteTarget(null);
+    } catch {
+      error('Failed to delete rule');
+    }
+  }, [deleteLead, deleteTarget, success, error]);
 
   const counts = FILTERS.reduce((acc, { key }) => {
     acc[key] = key === 'all' ? leads.length : leads.filter((l) => routeStatus(l) === key).length;
@@ -158,7 +173,9 @@ export default function CampaignLeadsPage() {
                   lead={lead}
                   onToggle={handleToggle}
                   onSync={setSyncLead}
+                  onDelete={setDeleteTarget}
                   toggling={togglingId === lead.id}
+                  deleting={deleteLoading && deleteTarget?.id === lead.id}
                 />
               ))}
             </div>
@@ -168,6 +185,33 @@ export default function CampaignLeadsPage() {
 
       <CreateRuleModal open={createOpen} onClose={() => setCreateOpen(false)} />
       <SyncDrawer lead={syncLead} onClose={() => setSyncLead(null)} />
+
+      <ConfirmDeletePopup
+        open={!!deleteTarget}
+        title="Delete routing rule?"
+        loading={deleteLoading}
+        onCancel={() => (deleteLoading ? null : setDeleteTarget(null))}
+        onConfirm={handleConfirmDelete}
+        message={
+          deleteTarget ? (
+            <span className="block space-y-2">
+              <span className="block">
+                Are you sure you want to delete this rule? This action cannot be undone.
+              </span>
+              <span className="block rounded-md border border-slate-700/60 bg-slate-800/40 p-2.5 text-xs font-mono text-slate-300 space-y-1">
+                <span className="block"><span className="text-slate-500">id:</span> #{deleteTarget.id}</span>
+                <span className="block"><span className="text-slate-500">→ campaign:</span> {deleteTarget.destination_campaign}</span>
+                <span className="block"><span className="text-slate-500">source:</span> {deleteTarget.source}</span>
+                <span className="block"><span className="text-slate-500">form:</span> {deleteTarget.form_name}</span>
+                <span className="block">
+                  <span className="text-slate-500">window:</span>{' '}
+                  {fmtDate(deleteTarget.startdate)} → {deleteTarget.enddate ? fmtDate(deleteTarget.enddate) : '∞ realtime'}
+                </span>
+              </span>
+            </span>
+          ) : null
+        }
+      />
     </div>
   );
 }

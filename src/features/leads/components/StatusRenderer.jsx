@@ -12,7 +12,7 @@ export default function StatusRenderer(params) {
   return (
     <span className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap
       ${STATUS_CLASSES[status] || 'bg-slate-600/20 text-slate-300'}`}>
-      {status ? DISPOSITIONS.find((d) => d.value === status)?.label || status : '—'}
+      {status ? `${DISPOSITIONS.find((d) => d.value === status)?.label || status} (${status})` : '—'}
     </span>
   );
 }

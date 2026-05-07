@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import {
   X,
   Loader2,
@@ -36,6 +38,7 @@ const STEPS = [
 ];
 
 const EMPTY = {
+  rule_name: '',
   sources: [],
   campaign_names: [],
   form_names: [],
@@ -43,6 +46,19 @@ const EMPTY = {
   startDate: '',
   endDate: '',
   isActive: true,
+};
+
+const ymdToDate = (s) => {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+const dateToYMD = (d) => {
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
 
 function StepRail({ current }) {
@@ -342,6 +358,7 @@ function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onCo
         </div>
 
         <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+          <Row label="Rule Name" value={<span className="text-sky-200 font-semibold">{form.rule_name?.trim() || '—'}</span>} />
           <Row label="Start Date" value={fmtDate(form.startDate)} />
           <Row label="End Date" value={form.endDate
             ? fmtDate(form.endDate)
@@ -490,13 +507,16 @@ export default function CreateRuleModal({ open, onClose }) {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const ruleNameTrimmed = form.rule_name.trim();
+  const nameValid  = ruleNameTrimmed.length > 0;
   const step1Valid = !!form.startDate && (!form.endDate || form.endDate >= form.startDate);
   const step2Valid = form.sources.length > 0;
   const step3Valid = !!form.destination_campaign;
-  const allValid   = step1Valid && step2Valid && step3Valid;
+  const allValid   = nameValid && step1Valid && step2Valid && step3Valid;
 
   // Any user input means a close attempt should ask for confirmation
   const dirty = !!(
+    ruleNameTrimmed ||
     form.startDate || form.endDate ||
     form.sources.length || form.campaign_names.length || form.form_names.length ||
     form.destination_campaign ||
@@ -529,6 +549,7 @@ export default function CreateRuleModal({ open, onClose }) {
     setSubmitting(true);
     try {
       await createLead({
+        rule_name: ruleNameTrimmed,
         source: form.sources,
         campaign_name: form.campaign_names,
         form_name: form.form_names,
@@ -559,22 +580,44 @@ export default function CreateRuleModal({ open, onClose }) {
           shadow-[0_30px_120px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="relative px-6 py-5 border-b border-white/10 shrink-0">
+        <div className="relative px-6 py-4 border-b border-white/10 shrink-0">
           <div className="absolute inset-0 opacity-50 bg-[radial-gradient(600px_circle_at_20%_0%,rgba(56,189,248,0.12),transparent_50%)]" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <div className="text-[10px] text-sky-400 uppercase tracking-widest mb-1">New Routing Rule</div>
-              <h3 className="text-base font-semibold text-slate-100">Create Lead Distribution Rule</h3>
-              <p className="text-[11px] text-slate-500 mt-1">
+          <div className="relative flex items-center gap-4">
+            <div className="min-w-0 shrink-0">
+              <div className="text-[10px] text-sky-400 uppercase tracking-widest mb-0.5">New Routing Rule</div>
+              <h3 className="text-base font-semibold text-slate-100 leading-tight">Create Lead Distribution Rule</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">
                 {STEPS[step - 1].desc} · Step {step} of {STEPS.length}
               </p>
             </div>
+
+            <div className="flex-1 min-w-0 mr-12">
+              <label
+                htmlFor="rule-name-input"
+                className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"
+              >
+                <Tag className="w-3 h-3" /> Rule Name <span className="text-rose-400">*</span>
+              </label>
+              <input
+                id="rule-name-input"
+                type="text"
+                value={form.rule_name}
+                onChange={(e) => set('rule_name', e.target.value)}
+                placeholder="e.g. Meta Realtime → Sales"
+                maxLength={120}
+                title="Editable in every step — required before review & create"
+                className={`w-full rounded-lg border bg-slate-900/80 px-3 py-2  text-sm text-slate-100
+                  placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/40 transition
+                  ${nameValid ? 'border-slate-700' : 'border-rose-500/30'}`}
+              />
+            </div>
+
             <button
               onClick={requestClose}
               title={dirty ? 'Discard changes' : 'Close'}
-              className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-white transition"
+              className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-rose-400 transition shrink-0 "
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -608,11 +651,15 @@ export default function CreateRuleModal({ open, onClose }) {
                   <label className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                     <Calendar className="w-3 h-3" /> Start Date <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => set('startDate', e.target.value)}
+                  <DatePicker
+                    selected={ymdToDate(form.startDate)}
+                    onChange={(d) => set('startDate', dateToYMD(d))}
+                    dateFormat="yyyy-MM-dd"
+                    placeholderText="yyyy-mm-dd"
                     className={dateInputCls}
+                    wrapperClassName="block w-full"
+                    popperClassName="dark-datepicker z-[60]"
+                    popperProps={{ strategy: 'fixed' }}
                   />
                   <div className="text-[10px] text-slate-600">When the rule starts matching leads</div>
                 </div>
@@ -622,18 +669,22 @@ export default function CreateRuleModal({ open, onClose }) {
                     <Calendar className="w-3 h-3" /> End Date <span className="text-slate-600">(optional)</span>
                   </label>
                   <div className="relative">
-                    <input
-                      type="date"
-                      value={form.endDate}
-                      min={form.startDate || undefined}
-                      onChange={(e) => set('endDate', e.target.value)}
+                    <DatePicker
+                      selected={ymdToDate(form.endDate)}
+                      minDate={ymdToDate(form.startDate) || undefined}
+                      onChange={(d) => set('endDate', dateToYMD(d))}
+                      dateFormat="yyyy-MM-dd"
+                      placeholderText="yyyy-mm-dd"
                       className={dateInputCls}
+                      wrapperClassName="block w-full"
+                      popperClassName="dark-datepicker z-[60]"
+                      popperProps={{ strategy: 'fixed' }}
                     />
                     {form.endDate && (
                       <button
                         type="button"
                         onClick={() => set('endDate', '')}
-                        className="absolute inset-y-0 right-2 my-auto h-6 w-6 grid place-items-center rounded text-slate-500 hover:text-rose-400 hover:bg-white/5 transition"
+                        className="absolute inset-y-0 right-2 my-auto h-6 w-6 grid place-items-center rounded text-slate-500 hover:text-rose-400 hover:bg-white/5 transition z-10"
                         title="Clear end date"
                       >
                         <X className="w-3 h-3" />
@@ -871,7 +922,11 @@ export default function CreateRuleModal({ open, onClose }) {
             {step === 2 && (step2Valid
               ? `${form.sources.length} source${form.sources.length === 1 ? '' : 's'} selected`
               : 'Pick at least one source')}
-            {step === 3 && (step3Valid ? 'Ready to review' : 'Pick a destination')}
+            {step === 3 && (
+              !step3Valid ? 'Pick a destination'
+              : !nameValid ? 'Name the rule to continue'
+              : 'Ready to review'
+            )}
           </div>
 
           {step < 3 ? (
@@ -887,6 +942,7 @@ export default function CreateRuleModal({ open, onClose }) {
             <button
               onClick={() => setConfirmOpen(true)}
               disabled={!allValid || isLoading || submitting}
+              title={!nameValid ? 'Rule name is required' : undefined}
               className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/20
                 px-5 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -917,6 +973,15 @@ export default function CreateRuleModal({ open, onClose }) {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(4px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        #rule-name-input:-webkit-autofill,
+        #rule-name-input:-webkit-autofill:hover,
+        #rule-name-input:-webkit-autofill:focus,
+        #rule-name-input:-webkit-autofill:active {
+          -webkit-text-fill-color: rgb(241 245 249) !important;
+          -webkit-box-shadow: 0 0 0 1000px rgb(15 23 42 / 0.8) inset !important;
+          caret-color: rgb(241 245 249) !important;
+          transition: background-color 9999s ease-in-out 0s;
         }
       `}</style>
     </div>

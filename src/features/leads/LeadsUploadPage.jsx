@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet, ListOrdered, Trash2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, ListOrdered, Trash2, Download } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
@@ -194,24 +194,51 @@ export default function LeadsUploadPage() {
     finally { setBulkDeleting(false); }
   }, [selectedPhones, deleteLead, success, error, clearSelection]);
 
+  const handleDownloadCsv = useCallback(() => {
+    const api = gridRef.current?.api;
+    if (!api) return;
+    if (api.getDisplayedRowCount() === 0) {
+      info('Nothing to download — current filters return no rows');
+      return;
+    }
+    // Skip the auto-injected checkbox column and the action-only "delete" column
+    const columnKeys = api.getAllDisplayedColumns()
+      .map((col) => col.getColId())
+      .filter((id) => id !== 'delete' && !id.toLowerCase().includes('select'));
+
+    const stamp = new Date().toISOString().split('T')[0];
+    api.exportDataAsCsv({
+      fileName: `leads-${stamp}.csv`,
+      columnKeys,
+    });
+    success(`Downloaded ${api.getDisplayedRowCount()} lead(s)`);
+  }, [success, info]);
+
   const columnDefs = useMemo(() => [
     { headerName: 'ENTRY DATE', field: 'entry_date', minWidth: 140, valueFormatter: ({ value }) => value ? new Date(value).toLocaleDateString() : '—' },
-    { headerName: '', colId: 'select', width: 52, maxWidth: 52, pinned: 'left', lockPinned: true, suppressMovable: true, sortable: false, filter: false,
-      checkboxSelection: (p) => !activeNumber && !!p.data?.phone_number,
-      headerCheckboxSelection: () => !activeNumber,
-      headerCheckboxSelectionFilteredOnly: true },
     { headerName: 'PHONE',      field: 'phone_number', minWidth: 150, cellClass: 'font-mono text-slate-300', filter: true },
     { headerName: 'USER',       field: 'user',         minWidth: 140, valueFormatter: ({ value }) => value || '—' },
     { headerName: 'FIRST NAME', field: 'first_name',   minWidth: 140, valueFormatter: ({ value }) => value || '—', resizable: true },
-    { headerName: 'LAST NAME',  field: 'last_name',    minWidth: 140, resizable: true, valueFormatter: ({ value }) => value || '—' },
+    { headerName: 'LAST NAME',  field: 'last_name',    minWidth: 140, flex: 1, resizable: true, valueFormatter: ({ value }) => value || '—' },
     { headerName: 'STATUS',     field: 'status',       minWidth: 110, cellRenderer: StatusRenderer },
     { headerName: 'CAMPAIGN',   field: 'campaign_id',  minWidth: 130, cellClass: 'font-mono text-slate-300', filter: true },
     { headerName: 'LIST ID',    field: 'list_id',      minWidth: 90,  maxWidth: 100, cellClass: 'font-mono text-slate-300' },
     { headerName: 'LEAD ID',    field: 'lead_id',      minWidth: 100, maxWidth: 110, cellClass: 'font-mono text-slate-300' },
     { headerName: 'DELETE', colId: 'delete', minWidth: 120, maxWidth: 130, pinned: 'right', lockPinned: true, suppressMovable: true, sortable: false, filter: false, cellRenderer: DeleteCellRenderer },
-  ], [activeNumber]);
+  ], []);
 
   const gridContext    = useMemo(() => ({ activeNumber, handleRowCall, onDeleteLead, deletingId }), [activeNumber, handleRowCall, onDeleteLead, deletingId]);
+  const rowSelectionConfig = useMemo(() => ({
+    mode: 'multiRow',
+    checkboxes: true,
+    headerCheckbox: true,
+    selectAll: 'filtered',
+    enableClickSelection: false,
+    isRowSelectable: (node) =>
+      node.data?.status !== 'INCALL' &&
+      node.data?.phone_number !== activeNumber &&
+      !!node.data?.phone_number,
+  }), [activeNumber]);
   const defaultColDef  = useMemo(() => ({ resizable: false, sortable: true, filter: true, suppressMovable: false, cellClass: 'font-mono text-slate-300' }), []);
   const agTheme        = useMemo(() => themeQuartz.withParams({
     backgroundColor: 'rgba(2,6,23,0.45)', headerBackgroundColor: 'rgba(2,6,23,0.6)',
@@ -303,15 +330,25 @@ export default function LeadsUploadPage() {
               </select>
             </div>
             <button
-              disabled={!selectedPhones.length || bulkDeleting}
+              onClick={handleDownloadCsv}
+              disabled={isFetching || rowData.length === 0}
+              title="Download the currently filtered rows as CSV"
+              className="px-3 py-2 rounded-md bg-emerald-600/20 text-emerald-200 border border-emerald-700/40
+                hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+            >
+              <Download size={16} />
+              Download CSV
+            </button>
+            <button
+              disabled={!selectedLeads.length || bulkDeleting}
               onClick={() => setBulkDeleteOpen(true)}
               className="px-3 py-2 rounded-md bg-rose-600/20 text-rose-200 border border-rose-700/40
                 hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2"
             >
               <Trash2 size={16} />
-              Delete Selected {selectedPhones.length ? `(${selectedPhones.length})` : ''}
+              Delete Selected {selectedLeads.length ? `(${selectedLeads.length})` : ''}
             </button>
-            {selectedPhones.length > 0 && (
+            {selectedLeads.length > 0 && (
               <button onClick={clearSelection} className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 text-sm">
                 Clear
               </button>
@@ -328,11 +365,11 @@ export default function LeadsUploadPage() {
             theme={agTheme}
             rowCount={totalRows}
             rowClassRules={rowClassRules}
-            getRowId={(p) => p.data.phone_number}
+            getRowId={(p) => String(p.data.lead_id ?? p.data.phone_number)}
             context={gridContext}
             suppressCellFocus
             loading={isFetching}
-            rowSelection="multiple"
+            rowSelection={rowSelectionConfig}
             onSelectionChanged={(e) => setSelectedLeads(e.api.getSelectedRows())}
           />
         </div>
@@ -349,7 +386,7 @@ export default function LeadsUploadPage() {
       <ConfirmDeletePopup
         open={bulkDeleteOpen}
         title="Delete Selected Leads"
-        message={`Are you sure you want to delete ${selectedPhones.length} lead(s)?`}
+        message={`Are you sure you want to delete ${selectedLeads.length} lead(s)?`}
         loading={bulkDeleting}
         onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={handleConfirmBulkDelete}

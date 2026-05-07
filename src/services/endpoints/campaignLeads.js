@@ -4,6 +4,7 @@ export const {
   useGetCampaignLeadsQuery,
   useCreateCampaignLeadMutation,
   useToggleCampaignLeadActiveMutation,
+  useDeleteCampaignLeadMutation,
   useSyncCampaignLeadRuleMutation,
   useLeadFiltersQuery,
 } = dashboardApi.injectEndpoints({
@@ -41,6 +42,13 @@ export const {
         }
       },
       invalidatesTags: (result, error, id) => [{ type: 'CampaignLeads', id }],
+    }),
+    deleteCampaignLead: builder.mutation({
+      query: (id) => ({ url: `/campaign-leads/${id}`, method: 'DELETE' }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'CampaignLeads', id },
+        { type: 'CampaignLeads', id: 'LIST' },
+      ],
     }),
     syncCampaignLeadRule: builder.mutation({
       query: (params) => ({ url: '/campaign-leads/sync', method: 'POST', params }),
