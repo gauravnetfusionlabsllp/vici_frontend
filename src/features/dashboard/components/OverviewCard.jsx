@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { memo, useId } from "react";
 import { StatSparkline } from "./SparkLineChart";
 
 const TONE = {
@@ -63,7 +63,7 @@ function PulseTrail({ tone }) {
   );
 }
 
-export function OverviewCard({
+function OverviewCardImpl({
   label,
   value,
   icon: Icon,
@@ -103,3 +103,5 @@ export function OverviewCard({
     </div>
   );
 }
+
+export const OverviewCard = memo(OverviewCardImpl);

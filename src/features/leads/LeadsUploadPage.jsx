@@ -1,7 +1,6 @@
 import { Upload, FileSpreadsheet, ListOrdered, Trash2, Download, Loader2 } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
-import * as XLSX from 'xlsx';
 import {
   useUploadExcelLeadsMutation,
   useGetLeadsQuery,
@@ -78,12 +77,20 @@ export default function LeadsUploadPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    // xlsx is ~1MB — load it lazily so it doesn't block the initial render
+    // of the leads table. The demo preview is non-critical.
     const loadDemoFile = async () => {
       try {
-        const res  = await fetch('/sample-leads.xlsx');
+        const [XLSX, res] = await Promise.all([
+          import('xlsx'),
+          fetch('/sample-leads.xlsx'),
+        ]);
+        if (cancelled) return;
         const blob = await res.blob();
         const reader = new FileReader();
         reader.onload = (e) => {
+          if (cancelled) return;
           const data     = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet    = workbook.Sheets[workbook.SheetNames[0]];
@@ -98,6 +105,7 @@ export default function LeadsUploadPage() {
       }
     };
     loadDemoFile();
+    return () => { cancelled = true; };
   }, []);
 
   const onUpload = async () => {

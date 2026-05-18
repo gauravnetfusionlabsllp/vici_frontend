@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Loader2, Pause, Play, ChevronsRight, Infinity, Trash2 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ConditionChip from './ConditionChip';
 import { routeStatus, fmtDate } from '../utils';
 
-export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, deleting }) {
+function LeadCard({ lead, onToggle, onSync, onDelete, toggling, deleting }) {
   const status = routeStatus(lead);
 
   return (
@@ -92,3 +93,5 @@ export default function LeadCard({ lead, onToggle, onSync, onDelete, toggling, d
     </div>
   );
 }
+
+export default memo(LeadCard);
