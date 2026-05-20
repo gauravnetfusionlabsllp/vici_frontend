@@ -187,7 +187,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-md">
-      <div className="relative mx-auto max-w-[1440px] h-full px-6 flex items-center">
+      <div className="relative mx-auto max-w-[1440px] 2xl:max-w-[1600px] h-full px-6 xl:px-2 flex items-center">
         <NavLink
           to={!user ? "/login" : isAdmin ? "/" : "/call"}
           className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-opacity hover:opacity-90 active:opacity-80"

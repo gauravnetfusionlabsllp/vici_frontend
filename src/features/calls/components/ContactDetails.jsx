@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone } from "lucide-react";
+import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail } from "lucide-react";
 import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState, setIsCallbackDial } from "@/features/calls/slices/callSlice";
 import { useCallHangupMutation, useDialNextMutation } from "@/services";
@@ -236,17 +236,20 @@ function ContactDetails({inCallLogData}) {
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-400">Phone</span>
-                      {lead.phone_number ? (
-                        <a
-                          href={`tel:${lead.phone_number}`}
-                          className="text-slate-100 font-semibold font-mono-nums tracking-wide hover:text-sky-300 transition-colors"
-                        >
-                          {lead.phone_number}
-                        </a>
-                      ) : (
-                        <span className="text-slate-100 font-semibold">—</span>
-                      )}
+                      <span className="text-slate-100 font-semibold font-mono-nums tracking-wide">
+                        {lead.phone_number || "—"}
+                      </span>
                     </div>
+
+                    {lead.email?.trim() && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-400">Email</span>
+                        <span className="text-slate-100 font-semibold break-all">
+                          {lead.email.trim()}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
