@@ -17,6 +17,7 @@ const CampaignLeadsPage  = lazy(() => import('@/features/campaign-leads/Campaign
 const LoginPage          = lazy(() => import('@/features/auth/LoginPage'));
 const UnauthorizedPage   = lazy(() => import('@/features/auth/UnauthorizedPage'));
 const CallPage           = lazy(() => import('@/features/calls/CallPage'));
+const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -42,6 +43,12 @@ function App() {
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>
                 <Route path="/call" element={<CallPage />} />
+              </Route>
+
+              {/* Accessible to both admins and agents (PrivateRoute without
+                  `allowedAdmin` skips the role check). */}
+              <Route element={<PrivateRoute />}>
+                <Route path="/agent-mail" element={<AgentMailPage />} />
               </Route>
 
               <Route path="/unauthorized" element={<UnauthorizedPage />} />

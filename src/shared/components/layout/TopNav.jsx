@@ -36,14 +36,17 @@ function fromYMD(s) {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
 }
-const agentNavItems = [{ name: "Call", path: "/call" }];
+const agentNavItems = [
+  { name: "Call", path: "/call" },
+  { name: "Send Email", path: "/agent-mail" },
+];
 const HOT_METAL_CAMPAIGN = "HotMetaleads";
 export default function TopNav() {
   const [now, setNow] = useState(new Date());
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
-  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads"].includes(location.pathname);
+  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads","/agent-mail"].includes(location.pathname);
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
   const roleLabel = useSelector(selectRoleLabel);

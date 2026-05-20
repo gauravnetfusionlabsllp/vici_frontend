@@ -1,15 +1,18 @@
-import React, { useMemo, useState } from "react";
+import React, { lazy, Suspense, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, MessageSquare } from "lucide-react";
+import { Mail, MessageCircle, MessageSquare } from "lucide-react";
 import { useSubmitStatusMutation, useDialNextMutation, useSendMessageMutation } from "@/services";
 import {  CALL_STATE, selectIsCallBusy, setCallState ,selectIsCallbackDial} from "@/features/calls/slices/callSlice";
 import { clearCurrentLead, selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { useToast } from "@/shared/hooks/useToast";
 import { tr } from "date-fns/locale";
+
+const AgentMailModal = lazy(() => import("@/features/agent-mail/AgentMailModal"));
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
 const DISPOSITIONS = [
@@ -52,6 +55,7 @@ const [sendMessage] = useSendMessageMutation();
   const [callbackDateTime, setCallbackDateTime] = useState(null);
   const [callbackComments, setCallbackComments] = useState("");
   const [sendReminderEmail, setSendReminderEmail] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
 
   const isCallback = selectedStatus?.value === "CBR";
   const lead = useSelector(selectCurrentLead);
@@ -59,6 +63,29 @@ const [sendMessage] = useSendMessageMutation();
   const phoneNumber = lead?.phone_number
     ? lead.phone_number.replace(/\D/g, "") // remove +, spaces, etc.
     : null;
+
+  const leadEmail = (lead?.email ?? "").trim();
+  const hasValidEmail = EMAIL_RE.test(leadEmail);
+  const leadFullName = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ").trim();
+
+  const mailPrefill = useMemo(() => ({
+    leadId: lead?.lead_id ?? null,
+    toEmails: hasValidEmail ? [leadEmail] : [],
+    recipientName: leadFullName,
+    phone: lead?.phone_number || "",
+    placeholders: {
+      ...(leadFullName ? { client_name: leadFullName } : {}),
+      ...(lead?.first_name ? { first_name: lead.first_name } : {}),
+    },
+  }), [lead, leadEmail, hasValidEmail, leadFullName]);
+
+  const handleOpenMail = () => {
+    if (!hasValidEmail) {
+      error(leadEmail ? `Invalid email on lead: ${leadEmail}` : "No email on this lead.");
+      return;
+    }
+    setMailOpen(true);
+  };
 
   const handleWhatsApp = () => {
     if (!phoneNumber) return;
@@ -361,7 +388,7 @@ const [sendMessage] = useSendMessageMutation();
     {submitting ? "Saving..." : "Submit & Close"}
   </button>
 
-  {/* SMS + WhatsApp */}
+  {/* SMS + WhatsApp + Email */}
   <div className="w-full md:w-1/2 flex gap-3">
     {/* Send SMS */}
     <button
@@ -390,6 +417,20 @@ const [sendMessage] = useSendMessageMutation();
       <MessageCircle size={18} strokeWidth={2.2} />
       <span>WhatsApp</span>
     </button>
+
+    {/* Email */}
+    <button
+      onClick={handleOpenMail}
+      disabled={!hasValidEmail}
+      title={hasValidEmail ? `Email ${leadEmail}` : "No email on this lead"}
+      className="flex-1 flex items-center justify-center gap-2
+                 rounded-xl px-4 py-3 font-semibold
+                 bg-primary text-primary-foreground
+                 hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      <Mail size={18} strokeWidth={2.2} />
+      <span>Email</span>
+    </button>
   </div>
   </div>
 
@@ -400,6 +441,17 @@ const [sendMessage] = useSendMessageMutation();
 </div>
 
       </div>
+
+      {mailOpen && (
+        <Suspense fallback={null}>
+          <AgentMailModal
+            open={mailOpen}
+            onClose={() => setMailOpen(false)}
+            leadId={lead?.lead_id ?? null}
+            prefill={mailPrefill}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
