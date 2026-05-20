@@ -11,10 +11,18 @@ const TONE = {
 
 const CURVE = "M0 28 C 28 12, 56 32, 100 22 S 168 8, 200 20";
 
+const TRAIL_SEGMENTS = [
+  { width: 2.6, opacity: 1.00, dash: "10 90", begin: "0s" },
+  { width: 2.1, opacity: 0.70, dash: "9 91",  begin: "0.07s" },
+  { width: 1.7, opacity: 0.45, dash: "8 92",  begin: "0.14s" },
+  { width: 1.3, opacity: 0.27, dash: "7 93",  begin: "0.21s" },
+  { width: 0.9, opacity: 0.14, dash: "6 94",  begin: "0.28s" },
+  { width: 0.6, opacity: 0.06, dash: "5 95",  begin: "0.35s" },
+];
+
 function PulseTrail({ tone }) {
   const id = useId().replace(/:/g, "");
   const fillId = `pt-fill-${id}`;
-  const lineId = `pt-line-${id}`;
 
   return (
     <div className="relative h-10 w-full" aria-hidden="true">
@@ -28,11 +36,6 @@ function PulseTrail({ tone }) {
             <stop offset="0%"   stopColor={tone.stroke} stopOpacity="0.22" />
             <stop offset="100%" stopColor={tone.stroke} stopOpacity="0" />
           </linearGradient>
-          <linearGradient id={lineId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor={tone.stroke} stopOpacity="0" />
-            <stop offset="55%"  stopColor={tone.stroke} stopOpacity="1" />
-            <stop offset="100%" stopColor={tone.stroke} stopOpacity="0" />
-          </linearGradient>
         </defs>
 
         {/* Soft volume below the curve */}
@@ -41,17 +44,30 @@ function PulseTrail({ tone }) {
         {/* Ghost baseline */}
         <path d={CURVE} stroke={tone.stroke} strokeOpacity="0.22" strokeWidth="1.5" fill="none" strokeLinecap="round" />
 
-        {/* Animated signal segment */}
-        <path
-          d={CURVE}
-          stroke={`url(#${lineId})`}
-          strokeWidth="2.2"
-          fill="none"
-          strokeLinecap="round"
-          pathLength="100"
-          strokeDasharray="22 78"
-          className="animate-trail"
-        />
+        {/* Snake-tail: head is bright/thick, trailing segments fade and thin */}
+        {TRAIL_SEGMENTS.map(({ width, opacity, dash, begin }, i) => (
+          <path
+            key={i}
+            d={CURVE}
+            stroke={tone.stroke}
+            strokeOpacity={opacity}
+            strokeWidth={width}
+            fill="none"
+            strokeLinecap="round"
+            pathLength="100"
+            strokeDasharray={dash}
+            strokeDashoffset="100"
+          >
+            <animate
+              attributeName="stroke-dashoffset"
+              from="100"
+              to="0"
+              dur="2.6s"
+              begin={begin}
+              repeatCount="indefinite"
+            />
+          </path>
+        ))}
       </svg>
 
       {/* Live indicator dot */}
