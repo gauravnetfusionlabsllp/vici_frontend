@@ -234,6 +234,21 @@ function ContactDetails({inCallLogData}) {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-400">Phone</span>
+                      {lead.phone_number ? (
+                        <a
+                          href={`tel:${lead.phone_number}`}
+                          className="text-slate-100 font-semibold font-mono-nums tracking-wide hover:text-sky-300 transition-colors"
+                        >
+                          {lead.phone_number}
+                        </a>
+                      ) : (
+                        <span className="text-slate-100 font-semibold">—</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-400">Entry Date</span>
                       <span className="text-slate-100 font-semibold">{lead.entry_date ?? "—"}</span>
