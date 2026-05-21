@@ -130,13 +130,6 @@ const handleUsernameClick = useCallback((username) => {
   const columnDefs = useMemo(
     () => [
       {
-        headerName: "STATION",
-        field: "STATION",
-        minWidth: 100,
-        maxWidth: 100,
-        cellClass: "font-mono text-slate-300",
-      },
-      {
         headerName: "USER ID",
         field: "USER_ID",
         minWidth: 100,
@@ -160,13 +153,6 @@ const handleUsernameClick = useCallback((username) => {
         cellRenderer: StatusRenderer,
       },
       {
-        headerName: "STARS",
-        field: "avg_stars",
-        minWidth: 90,
-        maxWidth: 110,
-        cellRenderer: StarRenderer,
-      },
-      {
         headerName: "CALLS",
         field: "CALLS",
         minWidth: 90,
@@ -180,20 +166,6 @@ const handleUsernameClick = useCallback((username) => {
         maxWidth: 120,
         cellClass: "font-mono text-slate-300",
       },
-      // {
-      //   headerName: "PHONE",
-      //   field: "phone_number",
-      //   minWidth: 140,
-      //   maxWidth: 140,
-      //   cellClass: "font-mono text-slate-300",
-      // },
-      {
-        headerName: "LOGIN DURATION",
-        field: "login_duration",
-        minWidth: 150,
-        maxWidth: 160,
-        cellClass: "font-mono text-slate-300",
-      },
       {
         headerName: "TALK TIME",
         field: "TALK_TIME_HH_MM_SS",
@@ -203,11 +175,39 @@ const handleUsernameClick = useCallback((username) => {
         cellClass: "font-mono text-slate-300",
       },
       {
+        headerName: "STARS",
+        field: "avg_stars",
+        minWidth: 90,
+        maxWidth: 110,
+        cellRenderer: StarRenderer,
+      },
+      {
         headerName: "PAUSE DURATION",
         field: "pause_sec",
         minWidth: 120,
         maxWidth: 160,
         // flex: 1, // ✅ let this stretch
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "LOGIN DURATION",
+        field: "login_duration",
+        minWidth: 150,
+        maxWidth: 160,
+        cellClass: "font-mono text-slate-300",
+      },
+      // {
+      //   headerName: "PHONE",
+      //   field: "phone_number",
+      //   minWidth: 140,
+      //   maxWidth: 140,
+      //   cellClass: "font-mono text-slate-300",
+      // },
+      {
+        headerName: "STATION",
+        field: "STATION",
+        minWidth: 100,
+        maxWidth: 100,
         cellClass: "font-mono text-slate-300",
       },
     ],
