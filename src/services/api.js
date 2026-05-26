@@ -13,6 +13,7 @@ export const dashboardApi = createApi({
     'EmailTemplates',
     'EmailAttachments',
     'CampaignLeads',
+    'HotMetaLeads',
   ],
   endpoints: () => ({}),
 });

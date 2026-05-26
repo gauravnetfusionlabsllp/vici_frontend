@@ -22,6 +22,7 @@ const adminNavItems = [
   { name: "Leads Upload", path: "/leads-upload" },
   { name: "Lead Router",    path: "/campaign-leads" },
   { name: "Email Templates",  path: "/email-templates" },
+  { name: "Reporting",        path: "/reporting" },
 ];
 function toYMD(date) {
   if (!date) return null;
@@ -39,6 +40,7 @@ function fromYMD(s) {
 const agentNavItems = [
   { name: "Call", path: "/call" },
   { name: "Send Email", path: "/agent-mail" },
+  { name: "Reporting", path: "/reporting" },
 ];
 const HOT_METAL_CAMPAIGN = "HotMetaleads";
 export default function TopNav() {
