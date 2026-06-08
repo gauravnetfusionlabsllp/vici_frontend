@@ -367,7 +367,7 @@ function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onCo
             : <span className="text-emerald-300 inline-flex items-center gap-1"><Infinity className="w-3 h-3" /> realtime forever</span>} />
           <Row label="Sources" value={list(form.sources)} />
           <Row label="Campaign Names" value={list(form.campaign_names, 'any')} />
-          <Row label="Ad Set Names" value={list(form.adset_names, 'any')} />
+          {/* <Row label="Ad Set Names" value={list(form.adset_names, 'any')} /> */}
           <Row label="Form Names" value={list(form.form_names, 'any')} />
           <Row label="Destination" value={<span className="text-emerald-300">{destinationLabel ?? form.destination_campaign}</span>} />
           <Row label="Status"
@@ -474,20 +474,20 @@ export default function CreateRuleModal({ open, onClose }) {
     return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
   }, [formsData, form.sources]);
 
-  const adsetNameOpts = useMemo(() => {
-    if (form.sources.length === 0) return [];
-    const acc = new Set();
-    formsData.forEach((f) => {
-      const sourceHit = (f?.sources ?? []).some((s) => form.sources.includes(s));
-      if (!sourceHit) return;
-      if (form.campaign_names.length > 0) {
-        const campaignHit = (f?.campaign_names ?? []).some((c) => form.campaign_names.includes(c));
-        if (!campaignHit) return;
-      }
-      (f?.adset_names ?? []).forEach((a) => a && acc.add(a));
-    });
-    return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
-  }, [formsData, form.sources, form.campaign_names]);
+  // const adsetNameOpts = useMemo(() => {
+  //   if (form.sources.length === 0) return [];
+  //   const acc = new Set();
+  //   formsData.forEach((f) => {
+  //     const sourceHit = (f?.sources ?? []).some((s) => form.sources.includes(s));
+  //     if (!sourceHit) return;
+  //     if (form.campaign_names.length > 0) {
+  //       const campaignHit = (f?.campaign_names ?? []).some((c) => form.campaign_names.includes(c));
+  //       if (!campaignHit) return;
+  //     }
+  //     (f?.adset_names ?? []).forEach((a) => a && acc.add(a));
+  //   });
+  //   return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
+  // }, [formsData, form.sources, form.campaign_names]);
 
   const formNameOpts = useMemo(() => {
     if (form.sources.length === 0) return [];
@@ -499,14 +499,14 @@ export default function CreateRuleModal({ open, onClose }) {
         const campaignHit = (f?.campaign_names ?? []).some((c) => form.campaign_names.includes(c));
         if (!campaignHit) return;
       }
-      if (form.adset_names.length > 0) {
-        const adsetHit = (f?.adset_names ?? []).some((a) => form.adset_names.includes(a));
-        if (!adsetHit) return;
-      }
+      // if (form.adset_names.length > 0) {
+      //   const adsetHit = (f?.adset_names ?? []).some((a) => form.adset_names.includes(a));
+      //   if (!adsetHit) return;
+      // }
       if (f?.form_name) acc.add(f.form_name);
     });
     return Array.from(acc).sort().map((v) => ({ value: v, label: v }));
-  }, [formsData, form.sources, form.campaign_names, form.adset_names]);
+  }, [formsData, form.sources, form.campaign_names]);
 
   // Auto-prune selected campaigns / adsets / forms when their parent filter narrows them away
   useEffect(() => {
@@ -517,13 +517,13 @@ export default function CreateRuleModal({ open, onClose }) {
     });
   }, [campaignNameOpts]);
 
-  useEffect(() => {
-    const valid = new Set(adsetNameOpts.map((o) => o.value));
-    setForm((f) => {
-      const next = f.adset_names.filter((v) => valid.has(v));
-      return next.length === f.adset_names.length ? f : { ...f, adset_names: next };
-    });
-  }, [adsetNameOpts]);
+  // useEffect(() => {
+  //   const valid = new Set(adsetNameOpts.map((o) => o.value));
+  //   setForm((f) => {
+  //     const next = f.adset_names.filter((v) => valid.has(v));
+  //     return next.length === f.adset_names.length ? f : { ...f, adset_names: next };
+  //   });
+  // }, [adsetNameOpts]);
 
   useEffect(() => {
     const valid = new Set(formNameOpts.map((o) => o.value));
@@ -548,7 +548,7 @@ export default function CreateRuleModal({ open, onClose }) {
   const dirty = !!(
     ruleNameTrimmed ||
     form.startDate || form.endDate ||
-    form.sources.length || form.campaign_names.length || form.adset_names.length || form.form_names.length ||
+    form.sources.length || form.campaign_names.length || form.form_names.length ||
     form.destination_campaign ||
     !form.isActive
   );
@@ -582,7 +582,7 @@ export default function CreateRuleModal({ open, onClose }) {
         rule_name: ruleNameTrimmed,
         source: form.sources,
         campaign_name: form.campaign_names,
-        adset_name: form.adset_names,
+        // ad_set_name: form.adset_names,
         form_name: form.form_names,
         destination_campaign: form.destination_campaign,
         startDate: form.startDate,
@@ -865,7 +865,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     emptyLabel="No campaigns tied to the selected source(s)"
                   />
 
-                  <MultiSelectDropdown
+                  {/* <MultiSelectDropdown
                     label="Ad Set Name"
                     icon={Boxes}
                     hint={
@@ -881,7 +881,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     onChange={(arr) => set('adset_names', arr)}
                     loading={filtersFetching}
                     emptyLabel="No ad sets tied to the selected source(s) / campaign(s)"
-                  />
+                  /> */}
 
                   <MultiSelectDropdown
                     label="Form Name"
@@ -889,7 +889,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     hint={
                       form.sources.length === 0
                         ? "Pick a source above first — form options depend on it."
-                        : `Optional. ${formNameOpts.length} form${formNameOpts.length === 1 ? '' : 's'} available for your current source${form.campaign_names.length > 0 ? ', campaign' : ''}${form.adset_names.length > 0 ? ' & ad set' : ''} selection.`
+                        : `Optional. ${formNameOpts.length} form${formNameOpts.length === 1 ? '' : 's'} available for your current source${form.campaign_names.length > 0 ? ' & campaign' : ''} selection.`
                     }
                     placeholder="Any form — pick to narrow down…"
                     disabledHint="Pick a source first…"
@@ -898,7 +898,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     selected={form.form_names}
                     onChange={(arr) => set('form_names', arr)}
                     loading={filtersFetching}
-                    emptyLabel="No forms tied to the selected source / campaign / ad set"
+                    emptyLabel="No forms tied to the selected source / campaign"
                   />
                 </>
               )}
@@ -986,7 +986,7 @@ export default function CreateRuleModal({ open, onClose }) {
                   Matches{' '}
                   <span className="text-sky-300">{form.sources.length}</span> source{form.sources.length === 1 ? '' : 's'}
                   {form.campaign_names.length > 0 && <> · <span className="text-sky-300">{form.campaign_names.length}</span> campaign{form.campaign_names.length === 1 ? '' : 's'}</>}
-                  {form.adset_names.length > 0    && <> · <span className="text-sky-300">{form.adset_names.length}</span> ad set{form.adset_names.length === 1 ? '' : 's'}</>}
+                  {/* {form.adset_names.length > 0    && <> · <span className="text-sky-300">{form.adset_names.length}</span> ad set{form.adset_names.length === 1 ? '' : 's'}</>} */}
                   {form.form_names.length > 0     && <> · <span className="text-sky-300">{form.form_names.length}</span> form{form.form_names.length === 1 ? '' : 's'}</>}
                   {' · '}{form.isActive ? 'will go live immediately.' : 'will be saved as paused.'}
                 </div>

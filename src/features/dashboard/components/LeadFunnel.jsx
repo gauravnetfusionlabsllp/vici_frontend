@@ -33,6 +33,7 @@ export function LeadFunnel() {
 
   const dialed = num(data.dialed)
   const connected = num(data.connected)
+  const callback = num(data.Call_back)
   const interested = num(data.Interested)
   const converted = num(data.converted)
 
@@ -66,13 +67,22 @@ export function LeadFunnel() {
         drop: safeDrop(connected, dialed, 0),
       },
     {
+      label: "CALLBACK",
+      subLabel: `${callback}`,
+      value: callback,
+      percentage: safePercent(callback, connected, 0),
+      metric: "CALLBACK",
+      width: 64,
+      drop: safeDrop(callback, connected, 0),
+    },
+    {
       label: "INTERESTED",
       subLabel: `${interested}`,
       value: interested,
-      percentage: safePercent(interested, dialed),
+      percentage: safePercent(interested, connected),
       metric: "INTERESTED",
       width: 58,
-      drop: safeDrop(interested, dialed),
+      drop: safeDrop(interested, connected),
     },
 
 
@@ -81,15 +91,15 @@ export function LeadFunnel() {
 
 
 
-    {
-      label: "CONVERTED",
-      subLabel: `${converted}`,
-      value: converted,
-      percentage: safePercent(converted, interested, 0),
-      metric: "CONVERTED",
-      width: 48,
-      drop: safeDrop(converted, interested, 0),
-    },
+    // {
+    //   label: "CONVERTED",
+    //   subLabel: `${converted}`,
+    //   value: converted,
+    //   // percentage: safePercent(converted, interested, 0),
+    //   metric: "CONVERTED",
+    //   width: 48,
+    //   // drop: safeDrop(converted, interested, 0),
+    // },
     // {
     //     label: "QUALIFIED",
     //     subLabel: `${qualified}`,
@@ -100,7 +110,7 @@ export function LeadFunnel() {
     //     drop: safeDrop(qualified, converted, 0),
     //   },
   ],
-  [dialed, connected, interested, converted]
+  [dialed, connected, callback, interested, converted]
 )
 
   return (
@@ -127,16 +137,12 @@ export function LeadFunnel() {
             </div>
 
             {/* Funnel Stage */}
-            <div className="relative flex items-center justify-center h-12" style={{ width: `${stage.width}%` }}>
+            <div className="relative flex items-center justify-center h-12 w-full">
               {/* Trapezoid Shape using clip-path */}
               <div
                 className="absolute inset-0 bg-gradient-to-b from-[#1e3a5f] to-[#0d2847] border-t  border-b border-slate-600/40 "
                 style={{
-                  clipPath:
-                    index === stages.length - 1
-                      ? "polygon(11% 0%, 89% 0%, 82% 100%, 20% 100%)"
-                      : "polygon(10% 0%, 90% 0%, 84% 100%, 16% 100%)",
-
+                  clipPath: `polygon(${13 + index * 5}% 0%, ${87 - index * 5}% 0%, ${82 - index * 5}% 100%, ${18 + index * 5}% 100%)`,
                 }}
               />
 
@@ -154,7 +160,7 @@ export function LeadFunnel() {
   <div
     className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1 text-red-400 text-sm"
     style={{
-      left: `${(100 + stage.width) / 2.1}%`,
+      left: `${91 - 5 * index}%`,
       transform: "translate(0px, -50%)",
     }}
   >

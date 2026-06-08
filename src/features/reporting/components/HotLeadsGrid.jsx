@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import { Loader2, Save, CheckCircle, Download } from 'lucide-react';
+import { Loader2, Save, CheckCircle, Download, ChevronDown, Check } from 'lucide-react';
 
 import { useUpdateHotMetaLeadMutation } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
@@ -43,9 +44,16 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 const inputCls =
   'w-full rounded-md border border-input bg-input/40 px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-smooth';
 
+// Normalize how_contacted to an array. Legacy rows may have a comma-separated string.
+const toContactArray = (v) => {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (!v) return [];
+  return String(v).split(',').map((s) => s.trim()).filter(Boolean);
+};
+
 function baseDraft(row) {
   return {
-    how_contacted: row.how_contacted ?? '',
+    how_contacted: toContactArray(row.how_contacted),
     response: row.response ?? '',
     client_registered: row.client_registered ?? null,
     client_deposited: row.client_deposited ?? null,
@@ -60,29 +68,100 @@ const parseTriBool = (s) => (s === '' ? null : s === 'true');
 function ContactCellRenderer(params) {
   const { canEdit, draftsRef, markDirty } = params.context;
   const row = params.data;
-  if (!canEdit(row)) {
-    return <span className="text-xs text-muted-foreground">{row.how_contacted || '—'}</span>;
+  const editable = canEdit(row);
+
+  const wrapRef = useRef(null);
+  const btnRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const [selected, setSelected] = useState(() => toContactArray(row.how_contacted));
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      const popup = document.getElementById(`contact-popup-${row.lead_id}`);
+      if (popup && popup.contains(e.target)) return;
+      setOpen(false);
+    };
+    // Portal popup is fixed-positioned; close on any scroll/resize so it
+    // never drifts away from the trigger.
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', onDocClick);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open, row.lead_id]);
+
+  if (!editable || selected.length > 0) {
+    return <span className="text-xs text-muted-foreground">{selected.length ? selected.join(', ') : '—'}</span>;
   }
+
+  const label = 'Select…';
+  const openMenu = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom, left: r.left, width: r.width });
+    setOpen(true);
+  };
+
+  const toggle = (value) => {
+    const next = selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value];
+    draftsRef.current[row.lead_id] = {
+      ...(draftsRef.current[row.lead_id] ?? baseDraft(row)),
+      how_contacted: next,
+    };
+    markDirty(row.lead_id);
+    setSelected(next);
+    if (next.length > 0) setOpen(false);
+  };
+
   return (
-    <select
-      ref={(el) => {
-        if (!el) return;
-        const draft = draftsRef.current[row.lead_id];
-        el.value = draft?.how_contacted ?? row.how_contacted ?? '';
-      }}
-      onChange={(e) => {
-        draftsRef.current[row.lead_id] = {
-          ...(draftsRef.current[row.lead_id] ?? baseDraft(row)),
-          how_contacted: e.target.value,
-        };
-        markDirty(row.lead_id);
-      }}
-      className={inputCls}
-    >
-      {CONTACT_OPTIONS.map((o) => (
-        <option key={o} value={o}>{o || 'Select…'}</option>
-      ))}
-    </select>
+    <div ref={wrapRef} className="relative w-full h-full flex items-center">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        title={label}
+        className={`w-full flex items-center justify-between gap-1 rounded-md border border-input bg-input/40 px-2 py-1 text-xs text-left transition-smooth text-muted-foreground
+          ${open ? 'border-primary/60' : 'hover:border-primary/40'}`}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown className={`w-3 h-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && pos && createPortal(
+        <div
+          id={`contact-popup-${row.lead_id}`}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 1000 }}
+          className="rounded-md border border-border bg-card shadow-lg overflow-hidden"
+        >
+          {CONTACT_OPTIONS.filter(Boolean).map((opt) => {
+            const active = selected.includes(opt);
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => toggle(opt)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs text-left transition-smooth
+                  ${active ? 'bg-primary/15 text-foreground' : 'text-foreground/80 hover:bg-secondary/40'}`}
+              >
+                <span className={`h-3.5 w-3.5 rounded border grid place-items-center shrink-0 transition-smooth
+                  ${active ? 'bg-primary/30 border-primary/60' : 'border-border'}`}>
+                  {active && <Check className="w-2.5 h-2.5 text-primary" />}
+                </span>
+                <span className="truncate">{opt}</span>
+              </button>
+            );
+          })}
+        </div>,
+        document.body,
+      )}
+    </div>
   );
 }
 
@@ -368,13 +447,26 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
       {
         headerName: 'Lead ID',
         field: 'lead_id',
-        width: 90,
+        width: 70,
         pinned: 'left',
         cellClass: 'font-mono text-muted-foreground',
       },
-      
+       {
+        headerName: 'Call Date and Time',
+        field: 'call_date',
+        width: 160,
+        valueFormatter: (p) => shortDate(p.value),
+        cellClass: 'font-mono-nums text-muted-foreground',
+      },
       {
-        headerName: 'Campaign',
+        headerName: 'Created date and time',
+        field: 'inserted_date',
+        width: 180,
+        valueFormatter: (p) => shortDate(p.value),
+        cellClass: 'font-mono-nums text-muted-foreground',
+      },
+      {
+        headerName: 'Campaign Name',
         field: 'campaign_name',
         width: 180,
         tooltipField: 'campaign_name',
@@ -386,37 +478,24 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         tooltipField: 'ad_set_name',
       },
       {
-        headerName: 'Ad Name',
+        headerName: 'Form Name',
         field: 'ad_name',
         width: 180,
         tooltipField: 'ad_name',
       },
       {
-        headerName: 'Inserted',
-        field: 'inserted_date',
-        width: 160,
-        valueFormatter: (p) => shortDate(p.value),
-        cellClass: 'font-mono-nums text-muted-foreground',
-      },
-      {
-        headerName: 'Call Date',
-        field: 'call_date',
-        width: 160,
-        valueFormatter: (p) => shortDate(p.value),
-        cellClass: 'font-mono-nums text-muted-foreground',
-      },
-      
-      {
-        headerName: 'Name',
+        headerName: 'Customer Name',
         field: 'name',
         width: 140,
         cellClass: 'font-medium text-foreground',
       },
       {
-        headerName: 'Phone',
+        headerName: 'Phone Number',
         field: 'phone',
         width: 130,
-        cellClass: 'font-mono text-primary',
+        cellRenderer: (p) => (
+          <span className="font-mono text-primary select-text cursor-text">{p.value}</span>
+        ),
       },
       {
         headerName: 'Email',
@@ -426,7 +505,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         cellClass: 'text-foreground/90',
       },
       {
-        headerName: 'Raw Data',
+        headerName: 'Form Details',
         field: 'raw_data',
         width: 180,
         sortable: false,
@@ -434,17 +513,72 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         cellRenderer: RawDataCellRenderer,
       },
       {
-        headerName: 'Agent',
+        headerName: 'Agent Name',
         colId: '__agent',
         width: 140,
-        valueGetter: (p) => p.data.agent_name || p.data.agent_user || '—',
+        valueGetter: (p) => p.vici_call_agent || p.data.agent_name || p.data.agent_user || '—',
         cellRenderer: AgentCellRenderer,
       },
+     
       {
-        headerName: 'Vici Status',
+        headerName: 'Call Disposition',
         field: 'vici_lead_status',
         width: 140,
         cellRenderer: ViciLeadStatusCellRenderer,
+      },
+      {
+        headerName: 'Call Response',
+        field: 'vici_call_comments',
+        width: 200,
+        tooltipField: 'vici_call_comments',
+        cellClass: 'text-foreground/90',
+      },
+      {
+        headerName: 'Follow-up Via',
+        field: 'how_contacted',
+        width: 170,
+        sortable: false,
+        filter: false,
+        cellRenderer: ContactCellRenderer,
+      },
+      {
+        headerName: 'Follow-up Response',
+        field: 'response',
+        width: 220,
+        sortable: false,
+        filter: false,
+        cellRenderer: ResponseCellRenderer,
+      },
+      {
+        headerName: 'Registered Status',
+        field: 'client_registered',
+        width: 130,
+        sortable: false,
+        filter: false,
+        cellRenderer: RegisteredCellRenderer,
+      },
+      {
+        headerName: 'Deposited Status',
+        field: 'client_deposited',
+        width: 130,
+        sortable: false,
+        filter: false,
+        cellRenderer: DepositedCellRenderer,
+      },
+      
+      {
+        headerName: 'First Status',
+        field: 'first_status_change',
+        width: 160,
+        valueFormatter: (p) => shortDate(p.value),
+        cellClass: 'font-mono-nums text-muted-foreground',
+      },
+      {
+        headerName: 'Latest Status',
+        field: 'last_status_change',
+        width: 160,
+        valueFormatter: (p) => shortDate(p.value),
+        cellClass: 'font-mono-nums text-muted-foreground',
       },
       {
         headerName: 'Recording',
@@ -454,52 +588,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         filter: false,
         cellRenderer: RecordingCellRenderer,
       },
-      {
-        headerName: 'How Contacted',
-        field: 'how_contacted',
-        width: 170,
-        sortable: false,
-        filter: false,
-        cellRenderer: ContactCellRenderer,
-      },
-      {
-        headerName: 'Response',
-        field: 'response',
-        width: 220,
-        sortable: false,
-        filter: false,
-        cellRenderer: ResponseCellRenderer,
-      },
-      {
-        headerName: 'Registered',
-        field: 'client_registered',
-        width: 130,
-        sortable: false,
-        filter: false,
-        cellRenderer: RegisteredCellRenderer,
-      },
-      {
-        headerName: 'Deposited',
-        field: 'client_deposited',
-        width: 130,
-        sortable: false,
-        filter: false,
-        cellRenderer: DepositedCellRenderer,
-      },
-      {
-        headerName: 'First Status',
-        field: 'first_status_change',
-        width: 160,
-        valueFormatter: (p) => shortDate(p.value),
-        cellClass: 'font-mono-nums text-muted-foreground',
-      },
-      {
-        headerName: 'Last Status',
-        field: 'last_status_change',
-        width: 160,
-        valueFormatter: (p) => shortDate(p.value),
-        cellClass: 'font-mono-nums text-muted-foreground',
-      },
+      
       {
         headerName: 'Action',
         colId: '__action',
@@ -536,9 +625,11 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         rowHoverColor: 'hsl(228 49% 15% / 0.5)',
         oddRowBackgroundColor: 'hsl(229 56% 13% / 0.3)',
         selectedRowBackgroundColor: 'hsl(220 100% 59% / 0.1)',
+        menuBackgroundColor: 'hsl(228 49% 12%)',
+        dialogBackgroundColor: 'hsl(228 49% 12%)',
         headerHeight: 40,
         floatingFiltersHeight: 36,
-        rowHeight: 48,
+        rowHeight: 40,
         wrapperBorderRadius: 0,
         fontFamily: 'Inter, sans-serif',
       }),
@@ -548,7 +639,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
   const getRowId = useCallback((p) => String(p.data.lead_id), []);
 
   return (
-    <div className="h-[calc(100vh-22rem)] min-h-[420px]">
+    <div className="h-[calc(100vh-10rem)] min-h-[840px]">
       <AgGridReact
         ref={gridRef}
         rowData={rows}
@@ -559,6 +650,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         getRowId={getRowId}
         suppressCellFocus
         suppressRowClickSelection
+        enableCellTextSelection
         domLayout="normal"
       />
     </div>

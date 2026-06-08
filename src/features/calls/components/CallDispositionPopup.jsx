@@ -16,16 +16,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
 const DISPOSITIONS = [
+  { label: "Ring No Response", value: "N" },
   { label: "Busy", value: "B" },
-  { label: "Completed", value: "C" },
-  { label: "No Answer", value: "N" },
-  { label: "Not Interested", value: "NI" },
-  { label: "Callback", value: "CBR" },
-  { label: "Converted", value: "CON" },
-  { label: "Disconnected", value: "D" },
-  { label: "Interested", value: "IN" },
   { label: "Invalid Number", value: "INVN" },
-  { label: "Wrong Number", value: "WN" },
+  { label: "Interested", value: "IN" },
+  { label: "Callback", value: "CBR" },
+  { label: "Not Interested", value: "NI" },
+  
+  // { label: "Completed", value: "C" },
+  // { label: "No Answer", value: "N" },
+  // { label: "Converted", value: "CON" },
+  // { label: "Disconnected", value: "D" },
+  // { label: "Wrong Number", value: "WN" },
 ];
 
 // ✅ yyyy dd mm time (HH:mm:ss)
@@ -105,19 +107,22 @@ const [sendMessage] = useSendMessageMutation();
   };
   const canSubmit = useMemo(() => {
     if (!selectedStatus) return false;
+    if (!callbackComments?.trim()) return false;
     if (!isCallback) return true;
     return !!callbackDateTime; // require datetime for callback
-  }, [selectedStatus, isCallback, callbackDateTime]);
+  }, [selectedStatus, isCallback, callbackDateTime, callbackComments]);
 
   const buildPayload = () => {
-    const payload = { status: selectedStatus.value };
+    const payload = {
+      status: selectedStatus.value,
+      callback_comments: callbackComments.trim(),
+    };
 
     if (selectedStatus.value === "CBR") {
       payload.callback_datetime = callbackDateTime
         ? formatCallbackDateTime(callbackDateTime)
         : null;
-      payload.callback_comments = callbackComments?.trim() || "";
-      payload.send_reminder_email = !!sendReminderEmail; // keep/remove if API doesn't need
+      payload.send_reminder_email = !!sendReminderEmail;
     }
 
     return payload;
@@ -179,7 +184,7 @@ const [sendMessage] = useSendMessageMutation();
   const TopTabs = [
     { label: "Interested", value: "IN", tone: "green" },
     { label: "Not Interested", value: "NI", tone: "slate" },
-    { label: "Unreachable", value: "N", tone: "slate" },
+    { label: "RNR", value: "RNR", tone: "slate" },
     { label: "Callback", value: "CBR", tone: "blue" },
   ];
 
@@ -226,7 +231,7 @@ const [sendMessage] = useSendMessageMutation();
 
         <div className="px-6 py-5">
           {/* Top tab row (like screenshot) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {TopTabs.map((t) => (
               <button
                 key={t.value}
@@ -236,12 +241,12 @@ const [sendMessage] = useSendMessageMutation();
                 {t.label}
               </button>
             ))}
-          </div>
+          </div> */}
 
           {/* Notes */}
-          <div className="mt-4">
+          <div className="mt-2">
             <div className="text-sm text-slate-300 mb-2">
-              Follow-up Notes <span className="text-slate-500">(optional)</span>
+              Follow-up Notes <span className="text-red-400">*</span>
             </div>
             <textarea
               value={callbackComments}
@@ -264,7 +269,9 @@ const [sendMessage] = useSendMessageMutation();
                     📅
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-slate-100">Callback Date &amp; Time</div>
+                    <div className="text-sm font-semibold text-slate-100">
+                      Callback Date &amp; Time <span className="text-red-400">*</span>
+                    </div>
                     <div className="text-xs text-slate-400">
                       Select one date and time for callback
                     </div>
@@ -279,8 +286,14 @@ const [sendMessage] = useSendMessageMutation();
                   timeCaption="Time"
                   dateFormat="EEE, MMM d, yyyy · h:mm aa"
                   minDate={new Date()}
-                  className="w-full md:w-[340px] rounded-lg border border-white/10 bg-slate-950/30 px-3 py-2
-                             text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                  placeholderText="Select date & time…"
+                  className={[
+                    "w-full md:w-[340px] rounded-lg px-3 py-2 text-sm text-slate-100",
+                    "focus:outline-none transition",
+                    callbackDateTime
+                      ? "border border-sky-400/50 bg-sky-500/10 ring-1 ring-sky-500/30"
+                      : "border border-amber-400/60 bg-slate-950/30 ring-1 ring-amber-400/30 placeholder:text-slate-500",
+                  ].join(" ")}
                   popperClassName="z-[70]"
                 />
               </div>
@@ -435,8 +448,12 @@ const [sendMessage] = useSendMessageMutation();
   </div>
 
   {/* tiny hint */}
-  <div className="mt-3 text-xs text-slate-500">
-    Tip: Callback requires date &amp; time.
+  <div className="mt-3 text-xs text-slate-400">
+    {!selectedStatus && "Select a disposition to continue."}
+    {selectedStatus && !callbackComments?.trim() && "Follow-up notes are required before submitting."}
+    {selectedStatus && callbackComments?.trim() && isCallback && !callbackDateTime && "Please select a callback date & time."}
+    {selectedStatus && callbackComments?.trim() && isCallback && callbackDateTime && "Ready to submit — callback scheduled."}
+    {selectedStatus && callbackComments?.trim() && !isCallback && "Ready to submit."}
   </div>
 </div>
 

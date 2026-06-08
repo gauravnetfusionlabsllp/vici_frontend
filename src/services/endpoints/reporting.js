@@ -3,8 +3,13 @@ import { dashboardApi } from '../api';
 export const {
   useGetHotMetaLeadsQuery,
   useUpdateHotMetaLeadMutation,
+  useGetMetaLeadByPhoneQuery,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
+    getMetaLeadByPhone: builder.query({
+      query: (phone) => `/reporting/meta-leads?phone=${encodeURIComponent(phone)}`,
+      transformResponse: (res) => res?.data?.[0] ?? null,
+    }),
     getHotMetaLeads: builder.query({
       query: () => '/reporting/hot-meta-leads-direct',
       transformResponse: (res) => res?.data ?? [],

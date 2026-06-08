@@ -11,7 +11,12 @@ import { clearUser, selectCampaingName, selectIsAdmin, selectRoleLabel, selectUs
 import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState } from "@/features/calls/slices/callSlice";
 import { selectDateRange, setDateRange } from "@/features/dashboard/slices/dateFilterSlice";
-import { dashboardApi, useDialNextMutation } from "@/services";
+import {
+  dashboardApi,
+  useDialNextMutation,
+  useVicidialLogoutMutation,
+  useVicidialReloginMutation,
+} from "@/services";
 import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
 import { useToast } from "@/shared/hooks/useToast";
 import BrandMark from "@/shared/components/BrandMark";
@@ -80,6 +85,9 @@ export default function TopNav() {
     [isAdmin]
   );
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
+  const [vicidialRelogin, { isLoading: isRelogging }] = useVicidialReloginMutation();
+  const [vicidialLogout] = useVicidialLogoutMutation();
+  const [reloginStatus, setReloginStatus] = useState(null); // null | "ok" | "fail"
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(interval);
@@ -89,10 +97,28 @@ export default function TopNav() {
     setMobileOpen(false);
   }, [isAdmin]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     closePopup();
+    if (!isAdmin) {
+      try {
+        await vicidialLogout().unwrap();
+      } catch (_) {
+        // Portal logout proceeds even if ViciDial logout fails
+      }
+    }
     dispatch(clearUser());
     navigate("/login", { replace: true });
+  };
+
+  const handleVicidialRelogin = async () => {
+    setReloginStatus(null);
+    try {
+      const res = await vicidialRelogin().unwrap();
+      setReloginStatus(res?.success ? "ok" : "fail");
+    } catch (_) {
+      setReloginStatus("fail");
+    }
+    setTimeout(() => setReloginStatus(null), 3000);
   };
   const formNameFilterRef = useRef(formNameFilter);
   useEffect(() => { formNameFilterRef.current = formNameFilter; }, [formNameFilter]);
@@ -250,6 +276,32 @@ export default function TopNav() {
                 {item.name}
               </NavLink>
             ))}
+
+            {!isAdmin && (
+              <button
+                onClick={handleVicidialRelogin}
+                disabled={isRelogging}
+                title="Reconnect to ViciDial"
+                className={[
+                  "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium border transition-smooth",
+                  reloginStatus === "ok"
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : reloginStatus === "fail"
+                    ? "border-destructive/40 bg-destructive/15 text-destructive"
+                    : "border-border bg-secondary/60 text-muted-foreground hover:bg-secondary",
+                ].join(" ")}
+              >
+                {isRelogging ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : reloginStatus === "ok" ? (
+                  "✓ Connected"
+                ) : reloginStatus === "fail" ? (
+                  "✗ Failed"
+                ) : (
+                  "Reconnect ViciDial"
+                )}
+              </button>
+            )}
           </div>
         )}
 

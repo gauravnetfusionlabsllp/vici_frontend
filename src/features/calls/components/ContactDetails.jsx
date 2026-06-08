@@ -1,9 +1,10 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail } from "lucide-react";
+import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail, FileText } from "lucide-react";
 import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState, setIsCallbackDial } from "@/features/calls/slices/callSlice";
-import { useCallHangupMutation, useDialNextMutation } from "@/services";
+import { useCallHangupMutation, useDialNextMutation, useGetMetaLeadByPhoneQuery } from "@/services";
+import RawDataCell from "@/features/reporting/components/RawDataCell";
 function normalizePhone(raw) {
   if (!raw) return "";
   // keep + and digits
@@ -63,6 +64,11 @@ function ContactDetails({inCallLogData}) {
   const isInCall = callState === CALL_STATE.INCALL;
   const isEnding = callState === CALL_STATE.ENDING;
   const isBusy = isHangingUp || callState === CALL_STATE.DIALING;
+
+  const callPhone = lead?.phone_number?.replace(/\D/g, "") || null;
+  const { data: metaLead, isFetching: isLoadingMeta } = useGetMetaLeadByPhoneQuery(callPhone, {
+    skip: !isInCall || !callPhone,
+  });
   const disabledAll = isDialing || isCallBusy;
   const initials = useMemo(() => {
     const a = lead?.first_name?.[0] ?? "";
@@ -216,9 +222,9 @@ function ContactDetails({inCallLogData}) {
                       Active
                     </div>
 
-                    <button className="h-9 w-9 grid place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition">
+                    {/* <button className="h-9 w-9 grid place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition">
                       <Pencil className="w-4 h-4 text-slate-200" />
-                    </button>
+                    </button> */}
                   </div>
 
                   <div className="mt-1 text-sm text-slate-400">
@@ -262,15 +268,58 @@ function ContactDetails({inCallLogData}) {
                       <span className="text-slate-400">List</span>
                       <span className="text-slate-100 font-semibold">{lead.list_id ?? "—"}</span>
                     </div>
+
+                    {isInCall && isLoadingMeta && (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                        <span className="text-slate-500 text-xs">Loading lead info…</span>
+                      </div>
+                    )}
+
+                    {isInCall && !isLoadingMeta && metaLead && (
+                      <>
+                        {metaLead.source?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Source</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.source}</span>
+                          </div>
+                        )}
+                        {metaLead.campaign_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Campaign</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.campaign_name}</span>
+                          </div>
+                        )}
+                        {metaLead.ad_set_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Ad Set</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.ad_set_name}</span>
+                          </div>
+                        )}
+                        {metaLead.form_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Form</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.form_name}</span>
+                          </div>
+                        )}
+                        {metaLead.raw_fields && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-400">Form Details</span>
+                            <RawDataCell data={metaLead.raw_fields} />
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Right "Hidden" pill (visual only like screenshot) */}
-              <button className="hidden md:flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 hover:bg-white/10 transition">
+              {/* <button className="hidden md:flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 hover:bg-white/10 transition">
                 <span className="text-sm font-semibold tracking-wide">HIDDEN</span>
                 <span className="text-slate-400">›</span>
-              </button>
+              </button> */}
             </div>
 
             {/* Bottom action row like screenshot */}

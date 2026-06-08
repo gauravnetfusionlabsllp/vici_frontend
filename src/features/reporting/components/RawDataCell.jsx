@@ -172,10 +172,10 @@ export default function RawDataCell({ data }) {
               <dl className="divide-y divide-border/40">
                 {entries.map(([k, v]) => (
                   <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2 px-2 py-1.5 hover:bg-secondary/40 rounded-sm">
-                    <dt className="text-[11px] text-muted-foreground truncate" title={k}>
+                    <dt className="text-[11px] " title={k}>
                       {humanizeKey(k)}
                     </dt>
-                    <dd className={`text-[11px] break-words ${valueKindCls(v)}`}>
+                    <dd className={`text-[11px]  ${valueKindCls(v)}`}>
                       {prettyValue(v)}
                     </dd>
                   </div>
