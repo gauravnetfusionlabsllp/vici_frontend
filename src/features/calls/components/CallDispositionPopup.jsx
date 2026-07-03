@@ -22,6 +22,7 @@ const DISPOSITIONS = [
   { label: "Interested", value: "IN" },
   { label: "Callback", value: "CBR" },
   { label: "Not Interested", value: "NI" },
+  { label: "Follow Up", value: "FUC" },
   
   // { label: "Completed", value: "C" },
   // { label: "No Answer", value: "N" },

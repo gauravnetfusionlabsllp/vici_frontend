@@ -22,6 +22,7 @@ const adminNavItems = [
   { name: "Leads Upload", path: "/leads-upload" },
   { name: "Lead Router",    path: "/campaign-leads" },
   { name: "Email Templates",  path: "/email-templates" },
+  { name: "Lead Management",   path: "/lead-management" },
   { name: "Reporting",        path: "/reporting" },
 ];
 function toYMD(date) {

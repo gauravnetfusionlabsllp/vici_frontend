@@ -62,10 +62,10 @@ export function CampaignPerformance({ data }) {
   const columnDefs = useMemo(
     () => [
       {
-        headerName: "CAMPAIGN ID",
-        field: "campaign_id",
+        headerName: "Campaign Name",
+        field: "campaign_name",
         minWidth: 120,
-        maxWidth: 130,
+        maxWidth: 170,
         cellRenderer: CampaignIdRenderer, // 👈 replaced cellClass with renderer
       },
       {

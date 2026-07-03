@@ -423,6 +423,29 @@ textarea:-webkit-autofill {
 .active-call-row:hover .ag-cell {
   background: rgba(34, 197, 94, 0.18) !important;
 }
+
+/* "Meta Quotes" lead-source rows — subtle amber flag (theme token). */
+.meta-quotes-row .ag-cell {
+  background: hsl(var(--status-waiting) / 0.10) !important;
+}
+
+.meta-quotes-row:hover .ag-cell {
+  background: hsl(var(--status-waiting) / 0.16) !important;
+}
+
+/* AG Grid tooltip — the grid theme uses a transparent backgroundColor, which the
+   default .ag-tooltip inherits. Give it a solid popover surface so it's readable. */
+.ag-tooltip {
+  background-color: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.4);
+  max-width: 320px;
+  white-space: normal;
+}
 /* Native form chrome — render select dropdown panel, arrow, scrollbar in dark */
 select,
 input,

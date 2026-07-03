@@ -9,4 +9,5 @@ export const DISPOSITIONS = [
   { label: 'Interested',     value: 'IN'   },
   { label: 'Invalid Number', value: 'INVN' },
   { label: 'Wrong Number',   value: 'WN'   },
+  { label: 'Follow Up',      value: 'FUC'   },
 ];

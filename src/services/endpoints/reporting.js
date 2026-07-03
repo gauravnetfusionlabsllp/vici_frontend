@@ -4,6 +4,7 @@ export const {
   useGetHotMetaLeadsQuery,
   useUpdateHotMetaLeadMutation,
   useGetMetaLeadByPhoneQuery,
+  useDownloadRecordingMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getMetaLeadByPhone: builder.query({
@@ -50,6 +51,20 @@ export const {
         }
       },
       invalidatesTags: (result, error, { leadId }) => [{ type: 'HotMetaLeads', id: leadId }],
+    }),
+    // Proxies a (cross-origin) call recording through our API so it can be fetched as a blob and
+    // saved client-side as <agent>_<phone>.mp3. Going through baseQuery means the Bearer token is
+    // sent and there's no CORS issue (same host as every other endpoint). It's a mutation, not a
+    // query, so the result is never cached. transformResponse turns the Blob into an object-URL
+    // *string* — a Blob in the store would trip Redux's serializability check on every action; the
+    // caller revokes the URL after saving.
+    downloadRecording: builder.mutation({
+      query: ({ recordingLink, agentName, phone }) => ({
+        url: '/reporting/download-recording',
+        params: { url: recordingLink, agent_name: agentName, phone },
+        responseHandler: (response) => response.blob(),
+      }),
+      transformResponse: (blob) => URL.createObjectURL(blob),
     }),
   }),
 });

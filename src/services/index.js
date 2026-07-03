@@ -10,3 +10,4 @@ export * from './endpoints/leads';
 export * from './endpoints/email';
 export * from './endpoints/campaignLeads';
 export * from './endpoints/reporting';
+export * from './endpoints/leadManagement';

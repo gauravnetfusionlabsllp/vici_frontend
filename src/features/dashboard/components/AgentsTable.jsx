@@ -133,7 +133,7 @@ const handleUsernameClick = useCallback((username) => {
         headerName: "USER ID",
         field: "USER_ID",
         minWidth: 100,
-        maxWidth: 100,
+        maxWidth: 110,
         cellClass: "font-mono text-slate-300",
         cellRenderer: CampaignIdRenderer,
       },
@@ -162,10 +162,46 @@ const handleUsernameClick = useCallback((username) => {
       {
         headerName: "CONNECTED",
         field: "connected_calls",
+        minWidth: 100,
+        maxWidth: 120,
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "Interested",
+        field: "dispo_IN",
+        minWidth: 100,
+        maxWidth: 120,
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "Callback",
+        field: "dispo_CBR",
+        minWidth: 80,
+        maxWidth: 120,
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "Follow_Up",
+        field: "dispo_FUC",
+        minWidth: 80,
+        maxWidth: 120,
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "Busy",
+        field: "dispo_B",
+        minWidth: 80,
+        maxWidth: 100,
+        cellClass: "font-mono text-slate-300",
+      },
+      {
+        headerName: "Not_Interested",
+        field: "dispo_NI",
         minWidth: 120,
         maxWidth: 120,
         cellClass: "font-mono text-slate-300",
       },
+      
       {
         headerName: "TALK TIME",
         field: "TALK_TIME_HH_MM_SS",
@@ -215,10 +251,12 @@ const handleUsernameClick = useCallback((username) => {
   );
   const defaultColDef = useMemo(
     () => ({
-      sortable: false,
-      filter: false,
-      resizable: false,
+     resizable: true,
+      sortable: true,
       suppressMovable: true,
+      filter: 'agTextColumnFilter',
+      // floatingFilter: true,
+      filterParams: { buttons: ['reset'], debounceMs: 200 },
     }),
     []
   );
@@ -233,6 +271,10 @@ const handleUsernameClick = useCallback((username) => {
         borderColor: "rgba(30,41,59,0.4)",
         rowHoverColor: "rgba(30,41,59,0.4)",
         oddRowBackgroundColor: "rgba(2,6,23,0.5)",
+        menuBackgroundColor: "hsl(var(--popover))",
+        menuTextColor: "hsl(var(--popover-foreground))",
+        dialogBackgroundColor: "hsl(var(--popover))",
+          floatingFiltersHeight: 36,
         headerHeight: 36,
         rowHeight: 34,
         wrapperBorderRadius: 0,

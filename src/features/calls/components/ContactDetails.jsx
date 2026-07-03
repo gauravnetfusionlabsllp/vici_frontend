@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail, FileText } from "lucide-react";
 import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
@@ -51,6 +51,33 @@ function buildManualLead(details, phone) {
 
   return out;
 }
+function CountdownRing({ seconds, total }) {
+  const r = 9;
+  const circ = 2 * Math.PI * r;
+  const frac = Math.max(0, Math.min(1, seconds / total));
+  return (
+    <span className="relative inline-flex h-6 w-6 items-center justify-center text-destructive">
+      <svg viewBox="0 0 24 24" className="absolute inset-0 -rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" strokeWidth="2" className="stroke-white/10" />
+        <circle
+          cx="12"
+          cy="12"
+          r={r}
+          fill="none"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="stroke-current transition-[stroke-dashoffset] duration-1000 ease-linear"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+        />
+      </svg>
+      <span className="text-[10px] font-bold tabular-nums">{seconds}</span>
+    </span>
+  );
+}
+
+const LOCK_SECONDS = 60;
+
 function ContactDetails({inCallLogData}) {
   const dispatch = useDispatch();
 
@@ -64,6 +91,30 @@ function ContactDetails({inCallLogData}) {
   const isInCall = callState === CALL_STATE.INCALL;
   const isEnding = callState === CALL_STATE.ENDING;
   const isBusy = isHangingUp || callState === CALL_STATE.DIALING;
+
+  // Lock END CALL for the first 60s after the call connects, with a countdown.
+  const isConnected = isInCall && inCallLogData;
+  const [lockSeconds, setLockSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isConnected) {
+      setLockSeconds(0);
+      return;
+    }
+    setLockSeconds(LOCK_SECONDS);
+    const id = setInterval(() => {
+      setLockSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isConnected]);
+
+  const isLocked = lockSeconds > 0;
 
   const callPhone = lead?.phone_number?.replace(/\D/g, "") || null;
   const { data: metaLead, isFetching: isLoadingMeta } = useGetMetaLeadByPhoneQuery(callPhone, {
@@ -115,6 +166,7 @@ function ContactDetails({inCallLogData}) {
 
   const handleEndCall = async () => {
     if (!isInCall && !inCallLogData) return;
+    if (isLocked) return; // ✅ honor the 60s post-connect lock
 
     dispatch(setCallState(CALL_STATE.ENDING)); // ✅ keep log polling ON
     try {
@@ -330,21 +382,32 @@ function ContactDetails({inCallLogData}) {
               {/* END CALL (real logic) */}
               <button
                 onClick={handleEndCall}
-                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !inCallLogData}
+                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !inCallLogData || isLocked}
                 className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]
                   ${
-                    isInCall || isEnding
+                    isLocked
+                      ? "border-destructive/15 bg-destructive/5 text-destructive/70"
+                      : isInCall || isEnding
                       ? "border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
                       : "border-white/10 bg-white/5 text-white/40"
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isEnding || isHangingUp ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                {isLocked ? (
+                  <>
+                    <CountdownRing seconds={lockSeconds} total={LOCK_SECONDS} />
+                    END CALL
+                  </>
                 ) : (
-                  <PhoneOff className="w-4 h-4" />
+                  <>
+                    {isEnding || isHangingUp ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PhoneOff className="w-4 h-4" />
+                    )}
+                    {isEnding ? "ENDING..." : "END CALL"}
+                  </>
                 )}
-                {isEnding ? "ENDING..." : "END CALL"}
               </button>
             </div>
 
