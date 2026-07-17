@@ -12,6 +12,10 @@ export function CampaignPerformance({ data }) {
 
   const rowData = data?.data || [];
 
+  const activeCampaignName = rowData.find(
+    (r) => r.campaign_id === activeCampaignId
+  )?.campaign_name;
+
   const handleCampaignClick = useCallback((campaignId) => {
     if (activeCampaignId === campaignId) {
       // clicking same id → deselect/clear
@@ -23,12 +27,13 @@ export function CampaignPerformance({ data }) {
   }, [dispatch, activeCampaignId]);
 
   const CampaignIdRenderer = useCallback((params) => {
-    const id = params.value;
-    const isActive = id === activeCampaignId;
+    const campaignId = params.data?.campaign_id;
+    const label = params.value;
+    const isActive = campaignId === activeCampaignId;
 
     return (
       <span
-        onClick={() => handleCampaignClick(id)}
+        onClick={() => handleCampaignClick(campaignId)}
         className={`
           cursor-pointer font-mono text-xs px-2 py-0.5 rounded transition-smooth
           ${isActive
@@ -39,7 +44,7 @@ export function CampaignPerformance({ data }) {
         title={isActive ? "Click to deselect" : "Click to filter by this campaign"}
       >
         {isActive && <span className="mr-1">▶</span>}
-        {id}
+        {label}
       </span>
     );
   }, [activeCampaignId, handleCampaignClick]);
@@ -155,7 +160,7 @@ export function CampaignPerformance({ data }) {
         {/* Active filter pill */}
         {activeCampaignId && (
           <div className="flex items-center gap-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded-full">
-            <span>Filtered: <strong>{activeCampaignId}</strong></span>
+            <span>Filtered: <strong>{activeCampaignName ?? activeCampaignId}</strong></span>
             <button
               onClick={() => {
                 dispatch(resetCampaignId());

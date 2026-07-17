@@ -11,6 +11,7 @@ export const {
   useGetGraphDataQuery,
   useGetCompliancereviewQuery,
   useGetLeadfunnelQuery,
+  useGetRnrTiersQuery,
   useGetMetaLeadStatsQuery,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -58,6 +59,11 @@ export const {
     }),
     getLeadfunnel: builder.query({
       query: () => '/leadfunnel',
+      providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED', 'USERNAME_FILTERED'],
+      extraOptions: { maxRetries: 3, withDate: true, withCampaign: true, withUsername: true },
+    }),
+    getRnrTiers: builder.query({
+      query: () => '/rnrtiers',
       providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED', 'USERNAME_FILTERED'],
       extraOptions: { maxRetries: 3, withDate: true, withCampaign: true, withUsername: true },
     }),

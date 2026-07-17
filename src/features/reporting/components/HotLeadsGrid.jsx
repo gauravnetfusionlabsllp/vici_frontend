@@ -4,7 +4,11 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { Loader2, Save, CheckCircle, Download, ChevronDown, Check } from 'lucide-react';
 
-import { useUpdateHotMetaLeadMutation, useDownloadRecordingMutation } from '@/services';
+import {
+  useUpdateHotMetaLeadMutation,
+  useDownloadRecordingMutation,
+  useUpdateHotMetaLeadCustomFieldsMutation,
+} from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { DISPOSITIONS } from '@/features/leads/constants';
 import { CONTACT_OPTIONS } from '../constants';
@@ -425,13 +429,213 @@ function AgentCellRenderer(params) {
   return <span className="text-xs text-foreground/80">{row.vici_call_agent||row.agent_name || row.agent_user || '—'}</span>;
 }
 
+// ────────── Custom-column cells (admin-defined) ──────────
+// Values live under row.custom_fields[name]; edits accumulate as a per-lead delta in
+// context.customDraftsRef and are persisted (PATCH) by the shared row Save button.
+
+// Coerce any stored value into an array for multiselect (legacy strings → single-element array).
+const toValueArray = (v) => {
+  if (Array.isArray(v)) return v.filter((x) => x !== null && x !== undefined && x !== '');
+  if (v === null || v === undefined || v === '') return [];
+  return [v];
+};
+
+function writeCustomDraft(params, value) {
+  const { customDraftsRef, markDirty } = params.context;
+  const leadId = params.data.lead_id;
+  const name = params.fieldDef.name;
+  customDraftsRef.current[leadId] = {
+    ...(customDraftsRef.current[leadId] ?? {}),
+    [name]: value,
+  };
+  markDirty(leadId);
+}
+
+// Reads the live value for a cell: the draft delta wins over the stored value.
+function readCustomValue(params) {
+  const { customDraftsRef } = params.context;
+  const { name } = params.fieldDef;
+  const draft = customDraftsRef.current[params.data.lead_id];
+  if (draft && name in draft) return draft[name];
+  return params.data.custom_fields?.[name];
+}
+
+function CustomTextCell({ params }) {
+  const { canEdit } = params.context;
+  const row = params.data;
+  const stored = row.custom_fields?.[params.fieldDef.name];
+  if (!canEdit(row)) {
+    return <span className="text-xs text-muted-foreground">{stored ? String(stored) : '—'}</span>;
+  }
+  return (
+    <input
+      type="text"
+      ref={(el) => {
+        if (!el) return;
+        el.value = readCustomValue(params) ?? '';
+      }}
+      placeholder="—"
+      onChange={(e) => writeCustomDraft(params, e.target.value)}
+      className={inputCls}
+    />
+  );
+}
+
+function CustomSelectCell({ params }) {
+  const { canEdit } = params.context;
+  const row = params.data;
+  const { options = [] } = params.fieldDef;
+  const stored = row.custom_fields?.[params.fieldDef.name];
+  if (!canEdit(row)) {
+    return <span className="text-xs text-muted-foreground">{stored ? String(stored) : '—'}</span>;
+  }
+  return (
+    <select
+      ref={(el) => {
+        if (!el) return;
+        el.value = readCustomValue(params) ?? '';
+      }}
+      onChange={(e) => writeCustomDraft(params, e.target.value)}
+      className={inputCls}
+    >
+      <option value="">—</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function CustomMultiSelectCell({ params }) {
+  const { canEdit } = params.context;
+  const row = params.data;
+  const { name, options = [] } = params.fieldDef;
+  const editable = canEdit(row);
+
+  const wrapRef = useRef(null);
+  const btnRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const [selected, setSelected] = useState(() => toValueArray(row.custom_fields?.[name]));
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      const popup = document.getElementById(`cf-popup-${row.lead_id}-${name}`);
+      if (popup && popup.contains(e.target)) return;
+      setOpen(false);
+    };
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', onDocClick);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open, row.lead_id, name]);
+
+  if (!editable) {
+    return (
+      <span className="text-xs text-muted-foreground">{selected.length ? selected.join(', ') : '—'}</span>
+    );
+  }
+
+  const label = selected.length ? selected.join(', ') : 'Select…';
+  const openMenu = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom, left: r.left, width: r.width });
+    setOpen(true);
+  };
+
+  const toggle = (value) => {
+    const next = selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value];
+    setSelected(next);
+    writeCustomDraft(params, next);
+  };
+
+  return (
+    <div ref={wrapRef} className="relative w-full h-full flex items-center">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        title={label}
+        className={`w-full flex items-center justify-between gap-1 rounded-md border border-input bg-input/40 px-2 py-1 text-xs text-left transition-smooth
+          ${selected.length ? 'text-foreground' : 'text-muted-foreground'} ${open ? 'border-primary/60' : 'hover:border-primary/40'}`}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown className={`w-3 h-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && pos && createPortal(
+        <div
+          id={`cf-popup-${row.lead_id}-${name}`}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 1000 }}
+          className="rounded-md border border-border bg-card shadow-lg overflow-hidden max-h-56 overflow-y-auto scrollbar-thin"
+        >
+          {options.length === 0 ? (
+            <div className="px-2 py-2 text-xs text-muted-foreground italic">No options</div>
+          ) : (
+            options.map((opt) => {
+              const active = selected.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggle(opt)}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs text-left transition-smooth
+                    ${active ? 'bg-primary/15 text-foreground' : 'text-foreground/80 hover:bg-secondary/40'}`}
+                >
+                  <span className={`h-3.5 w-3.5 rounded border grid place-items-center shrink-0 transition-smooth
+                    ${active ? 'bg-primary/30 border-primary/60' : 'border-border'}`}>
+                    {active && <Check className="w-2.5 h-2.5 text-primary" />}
+                  </span>
+                  <span className="truncate">{opt}</span>
+                </button>
+              );
+            })
+          )}
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
+function CustomReadOnlyCell({ params }) {
+  const v = params.data.custom_fields?.[params.fieldDef.name];
+  const text = Array.isArray(v) ? v.join(', ') : v !== null && v !== undefined && v !== '' ? String(v) : '—';
+  return <span className="text-xs text-muted-foreground">{text}</span>;
+}
+
+function CustomFieldCellRenderer(params) {
+  switch (params.fieldDef?.type) {
+    case 'text':
+      return <CustomTextCell params={params} />;
+    case 'select':
+      return <CustomSelectCell params={params} />;
+    case 'multiselect':
+      return <CustomMultiSelectCell params={params} />;
+    default:
+      return <CustomReadOnlyCell params={params} />;
+  }
+}
+
 // ────────── Grid wrapper ──────────
 
-export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
+export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [] }) {
   const { error: toastError } = useToast();
   const [updateLead] = useUpdateHotMetaLeadMutation();
+  const [updateCustomFields] = useUpdateHotMetaLeadCustomFieldsMutation();
   const gridRef = useRef(null);
   const draftsRef = useRef({});
+  const customDraftsRef = useRef({});
 
   const [dirtySet, setDirtySet] = useState(() => new Set());
   const [savingId, setSavingId] = useState(null);
@@ -461,29 +665,45 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
 
   const handleSave = useCallback(
     async (row) => {
-      const draft = draftsRef.current[row.lead_id];
-      if (!draft) return;
-      setSavingId(row.lead_id);
+      const leadId = row.lead_id;
+      const stdDraft = draftsRef.current[leadId];
+      const custDraft = customDraftsRef.current[leadId];
+      if (!stdDraft && !custDraft) return;
+      setSavingId(leadId);
       try {
-        await updateLead({
-          leadId: row.lead_id,
-          currentUser,
-          body: {
-            ...draft,
-            agent_name: currentUser?.full_name || currentUser?.user || '',
-          },
-        }).unwrap();
+        // Fire only the groups that actually changed: standard note fields via PUT, custom-column
+        // values via the dedicated PATCH (delta merge). Both hit the getHotMetaLeads cache row.
+        const calls = [];
+        if (stdDraft) {
+          calls.push(
+            updateLead({
+              leadId,
+              currentUser,
+              body: {
+                ...stdDraft,
+                agent_name: currentUser?.full_name || currentUser?.user || '',
+              },
+            }).unwrap(),
+          );
+        }
+        if (custDraft) {
+          calls.push(
+            updateCustomFields({ leadId, body: { custom_fields: custDraft } }).unwrap(),
+          );
+        }
+        await Promise.all(calls);
 
-        delete draftsRef.current[row.lead_id];
+        delete draftsRef.current[leadId];
+        delete customDraftsRef.current[leadId];
         setDirtySet((prev) => {
-          if (!prev.has(row.lead_id)) return prev;
+          if (!prev.has(leadId)) return prev;
           const next = new Set(prev);
-          next.delete(row.lead_id);
+          next.delete(leadId);
           return next;
         });
         setSavedSet((prev) => {
           const next = new Set(prev);
-          next.add(row.lead_id);
+          next.add(leadId);
           return next;
         });
       } catch (e) {
@@ -492,7 +712,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         setSavingId(null);
       }
     },
-    [updateLead, currentUser, toastError],
+    [updateLead, updateCustomFields, currentUser, toastError],
   );
 
   // Refresh only the action column when the per-row save state changes —
@@ -507,6 +727,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
     () => ({
       canEdit,
       draftsRef,
+      customDraftsRef,
       markDirty,
       dirtySet,
       savingId,
@@ -516,8 +737,22 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
     [canEdit, markDirty, dirtySet, savingId, savedSet, handleSave],
   );
 
-  const columnDefs = useMemo(
-    () => [
+  const columnDefs = useMemo(() => {
+    // One column per admin-defined custom field, rendered/edited by type. Inserted before the
+    // pinned Action column. colId is derived from the (unique) field name so AG Grid keeps
+    // per-column state stable across re-renders.
+    const customCols = (formFields ?? []).map((field) => ({
+      headerName: field.name,
+      colId: `cf__${field.name}`,
+      width: 180,
+      sortable: false,
+      filter: false,
+      valueGetter: (p) => p.data?.custom_fields?.[field.name],
+      cellRenderer: CustomFieldCellRenderer,
+      cellRendererParams: { fieldDef: field },
+    }));
+
+    return [
       {
         headerName: 'Lead ID',
         field: 'lead_id',
@@ -697,6 +932,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         cellClass: 'font-mono-nums text-muted-foreground',
       },
 
+      ...customCols,
       {
         headerName: 'Action',
         colId: '__action',
@@ -706,9 +942,8 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin }) {
         filter: false,
         cellRenderer: ActionCellRenderer,
       },
-    ],
-    [],
-  );
+    ];
+  }, [formFields]);
 
   const defaultColDef = useMemo(
     () => ({

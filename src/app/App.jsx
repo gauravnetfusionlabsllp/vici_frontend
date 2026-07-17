@@ -20,6 +20,7 @@ const CallPage           = lazy(() => import('@/features/calls/CallPage'));
 const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPage'));
 const ReportingPage      = lazy(() => import('@/features/reporting/ReportingPage'));
 const LeadManagementPage = lazy(() => import('@/features/lead-management/LeadManagementPage'));
+const ManagerViewPage    = lazy(() => import('@/features/manager-view/ManagerViewPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/campaign-leads"  element={<CampaignLeadsPage />} />
                 <Route path="/lead-management" element={<LeadManagementPage />} />
+                <Route path="/manager-view"    element={<ManagerViewPage />} />
               </Route>
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>

@@ -23,6 +23,7 @@ const adminNavItems = [
   { name: "Lead Router",    path: "/campaign-leads" },
   { name: "Email Templates",  path: "/email-templates" },
   { name: "Lead Management",   path: "/lead-management" },
+  { name: "Manager View",     path: "/manager-view" },
   { name: "Reporting",        path: "/reporting" },
 ];
 function toYMD(date) {
@@ -49,7 +50,7 @@ export default function TopNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
-  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads","/agent-mail"].includes(location.pathname);
+  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads","/agent-mail","/manager-view"].includes(location.pathname);
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
   const roleLabel = useSelector(selectRoleLabel);

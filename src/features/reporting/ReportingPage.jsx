@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Flame, Loader2, RefreshCw, Search, AlertTriangle } from 'lucide-react';
+import { Flame, Loader2, RefreshCw, Search, AlertTriangle, Columns3 } from 'lucide-react';
 
 import { selectIsAdmin, selectUser } from '@/features/auth/slices/authSlice';
-import { useGetHotMetaLeadsQuery } from '@/services';
+import { useGetHotMetaLeadsQuery, useGetHotMetaLeadNotesMappingQuery } from '@/services';
 import { SkeletonTable } from '@/shared/components/ui';
 
 import HotLeadsGrid from './components/HotLeadsGrid';
+import ManageCustomColumnsModal from './components/ManageCustomColumnsModal';
 
 export default function ReportingPage() {
   const user = useSelector(selectUser);
@@ -23,7 +24,11 @@ export default function ReportingPage() {
     skipPollingIfUnfocused: true,
   });
 
+  // Admin-defined custom column definitions (global). Shown as extra grid columns for every row.
+  const { data: formFields = [] } = useGetHotMetaLeadNotesMappingQuery();
+
   const [search, setSearch] = useState('');
+  const [columnsOpen, setColumnsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -82,6 +87,16 @@ export default function ReportingPage() {
                 className="w-56 rounded-md border border-input bg-input/40 pl-8 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-smooth"
               />
             </div>
+            {isAdmin && (
+              <button
+                onClick={() => setColumnsOpen(true)}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth"
+                title="Manage custom columns"
+              >
+                <Columns3 className="w-3.5 h-3.5" />
+                <span className="text-xs">Columns</span>
+              </button>
+            )}
             <button
               onClick={refetch}
               disabled={isFetching}
@@ -121,9 +136,16 @@ export default function ReportingPage() {
             {search ? 'No leads match your search.' : 'No leads found.'}
           </div>
         ) : (
-          <HotLeadsGrid rows={filtered} currentUser={user} isAdmin={isAdmin} />
+          <HotLeadsGrid rows={filtered} currentUser={user} isAdmin={isAdmin} formFields={formFields} />
         )}
       </div>
+
+      {isAdmin && columnsOpen && (
+        <ManageCustomColumnsModal
+          onClose={() => setColumnsOpen(false)}
+          formFields={formFields}
+        />
+      )}
     </div>
   );
 }

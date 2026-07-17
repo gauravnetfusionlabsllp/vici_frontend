@@ -10,6 +10,7 @@ import DialerPerformance from './components/DialerPerformance';
 import { CampaignPerformance } from './components/CampaignPerformance';
 import HourlyPerformanceHeatmap from './components/HourlyPerformance';
 import { LeadFunnel } from './components/LeadFunnel';
+import { RnrTierFunnel } from './components/RnrTierFunnel';
 
 export default function DashboardPage() {
   const { data: campaignPerformance = [] } =
@@ -65,6 +66,7 @@ export default function DashboardPage() {
     {/* RIGHT COLUMN */}
     <div className="space-y-4 stagger-children">
       <LeadFunnel />
+      <RnrTierFunnel />
       <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth">
         <div className="flex justify-between items-center m-2 lg:mb-4">
             <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">

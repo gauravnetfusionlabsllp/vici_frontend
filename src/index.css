@@ -470,3 +470,69 @@ select option:focus {
   background: linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary))) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
+
+/* ───────── Manager View — page-scoped theming ─────────
+   The app is dark-only (tokens on :root). The Manager View page wraps its content in
+   `.mv-scope[data-theme="light|dark"]`; overriding tokens here re-themes every descendant that
+   styles via hsl(var(--token)) — no component edits needed. Page-only header-bar tokens
+   (--mv-head/-fg/-accent) give the "navy header + teal accent" spreadsheet look. */
+.mv-scope {
+  /* dark defaults — the rest of the tokens inherit the app :root (dark) */
+  --mv-head: 228 49% 15%;      /* secondary */
+  --mv-head-fg: 220 40% 98%;   /* foreground */
+  --mv-accent: 158 100% 41%;   /* status-active */
+}
+
+.mv-scope[data-theme="light"] {
+  color-scheme: light;
+  --background: 210 40% 97%;
+  --foreground: 222 44% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 44% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 44% 14%;
+  --primary: 212 72% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 95%;
+  --secondary-foreground: 222 44% 14%;
+  --muted: 210 40% 95%;
+  --muted-foreground: 220 10% 42%;
+  --accent: 212 72% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 68% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --status-active: 120 100% 26%;
+  --status-waiting: 40 96% 44%;
+  --status-offline: 220 9% 60%;
+  --border: 214 28% 87%;
+  --input: 214 28% 84%;
+  --ring: 212 72% 45%;
+  /* header bars: navy + teal accent */
+  --mv-head: 218 44% 18%;
+  --mv-head-fg: 0 0% 100%;
+  --mv-accent: 168 72% 40%;
+}
+
+/* Native form chrome follows the page theme (overrides the global dark color-scheme). */
+.mv-scope[data-theme="light"] select,
+.mv-scope[data-theme="light"] input,
+.mv-scope[data-theme="light"] textarea {
+  color-scheme: light;
+}
+
+/* Manager View section header bar (spreadsheet-style). */
+.mv-head-bar {
+  background-color: hsl(var(--mv-head));
+  color: hsl(var(--mv-head-fg));
+}
+
+/* Light-mode react-datepicker popper (companion to .dark-datepicker; default CSS is already light,
+   these just align the accent/selection with the page primary). */
+.light-datepicker .react-datepicker__day--selected,
+.light-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.light-datepicker .react-datepicker__day--today {
+  border: 1px solid hsl(var(--primary));
+}

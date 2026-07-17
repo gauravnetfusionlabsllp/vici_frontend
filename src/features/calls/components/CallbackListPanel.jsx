@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Phone, Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -35,11 +35,24 @@ function formatDate(d) {
   });
 }
 
+// Normalizes backend/app callback formats into a Date, or null if unparseable.
+// Handles ISO ("...T..."), MySQL space-separated ("YYYY-MM-DD HH:MM:SS"),
+// and the app's own "YYYY-MM-DD+HH:MM:SS" (+ delimiter, see CallDispositionPopup).
+function parseCallbackTime(d) {
+  if (!d) return null;
+  let s = String(d).trim();
+  if (!s || s.toLowerCase() === "nan") return null;
+  // unify the first date/time delimiter to "T" so Date parses it as local time
+  // (non-global replace leaves any trailing tz offset like "+05:30" intact)
+  s = s.replace(/[+\s]/, "T");
+  const date = new Date(s);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function formatDateTime(d) {
   if (!d) return "—";
-  const s = String(d);
-  const date = new Date(s);
-  if (Number.isNaN(date.getTime())) return safeText(d);
+  const date = parseCallbackTime(d);
+  if (!date) return safeText(d);
   return date.toLocaleString(undefined, {
     day: "2-digit",
     month: "short",
@@ -47,13 +60,6 @@ function formatDateTime(d) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function formatPhone(raw) {
-  const s = safeText(raw);
-  if (s === "—") return "—";
-  const cleaned = String(raw).replace(/[^\d+]/g, "");
-  return cleaned || s;
 }
 
 function badgeClass(status) {
@@ -75,7 +81,24 @@ export default function CallbackListPanel() {
 
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
 
-  const leads = data?.data ?? [];
+  // Current time, kept in state so render stays pure; ticks every 30s to keep
+  // the callback window sliding independent of the 5s data polling.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Show only callbacks due within ±30 min of now (60-min window centered on now).
+  // Strict: callbacks with a missing/unparseable callback_time are hidden.
+  const leads = useMemo(() => {
+    const WINDOW_MS = 30 * 60 * 1000;
+    const all = data?.data ?? [];
+    return all.filter((lead) => {
+      const t = parseCallbackTime(lead?.callback_time);
+      return t != null && Math.abs(t.getTime() - now) <= WINDOW_MS;
+    });
+  }, [data, now]);
 
   const handleDial = useCallback(
     async (lead) => {
@@ -98,7 +121,7 @@ export default function CallbackListPanel() {
         dispatch(setCurrentLead(lead ?? null));
         dispatch(setCallState(CALL_STATE.INCALL));
         dispatch(setIsCallbackDial(true))
-      } catch (e) {
+      } catch {
         dispatch(setCallState(CALL_STATE.IDLE));
         alert("Failed to dial. Please try again.");
       }
@@ -134,13 +157,13 @@ export default function CallbackListPanel() {
       <div className="sticky top-0 z-10 border-b border-white/10 bg-slate-950/40 backdrop-blur px-3 py-2">
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold text-white">Callbacks</div>
-          <div className="text-xs text-slate-400">{safeText(data?.total_records)} total</div>
+          <div className="text-xs text-slate-400">{leads.length} due (±30 min)</div>
         </div>
       </div>
 
       <div className="relative stagger-children">
         {leads.length === 0 ? (
-          <div className="p-4 text-sm text-slate-400 animate-fade-in">No callbacks right now.</div>
+          <div className="p-4 text-sm text-slate-400 animate-fade-in">No callbacks due within ±30 minutes.</div>
         ) : (
           leads.map((lead) => {
             const fullName = [
