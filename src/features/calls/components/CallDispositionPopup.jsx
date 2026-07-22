@@ -8,6 +8,8 @@ import { Mail, MessageCircle, MessageSquare } from "lucide-react";
 import { useSubmitStatusMutation, useDialNextMutation, useSendMessageMutation } from "@/services";
 import {  CALL_STATE, selectIsCallBusy, setCallState ,selectIsCallbackDial} from "@/features/calls/slices/callSlice";
 import { clearCurrentLead, selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
+import { selectMaskPii } from "@/features/auth/slices/authSlice";
+import { maskEmail } from "@/shared/lib/mask";
 import { useToast } from "@/shared/hooks/useToast";
 import { tr } from "date-fns/locale";
 
@@ -67,8 +69,10 @@ const [sendMessage] = useSendMessageMutation();
     ? lead.phone_number.replace(/\D/g, "") // remove +, spaces, etc.
     : null;
 
+  const maskPii = useSelector(selectMaskPii);
   const leadEmail = (lead?.email ?? "").trim();
   const hasValidEmail = EMAIL_RE.test(leadEmail);
+  const displayEmail = maskPii ? maskEmail(leadEmail) : leadEmail;
   const leadFullName = [lead?.first_name, lead?.last_name].filter(Boolean).join(" ").trim();
 
   const mailPrefill = useMemo(() => ({
@@ -84,7 +88,7 @@ const [sendMessage] = useSendMessageMutation();
 
   const handleOpenMail = () => {
     if (!hasValidEmail) {
-      error(leadEmail ? `Invalid email on lead: ${leadEmail}` : "No email on this lead.");
+      error(leadEmail ? `Invalid email on lead: ${displayEmail}` : "No email on this lead.");
       return;
     }
     setMailOpen(true);
@@ -436,7 +440,7 @@ const [sendMessage] = useSendMessageMutation();
     <button
       onClick={handleOpenMail}
       disabled={!hasValidEmail}
-      title={hasValidEmail ? `Email ${leadEmail}` : "No email on this lead"}
+      title={hasValidEmail ? `Email ${displayEmail}` : "No email on this lead"}
       className="flex-1 flex items-center justify-center gap-2
                  rounded-xl px-4 py-3 font-semibold
                  bg-primary text-primary-foreground

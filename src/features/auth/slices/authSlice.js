@@ -35,6 +35,15 @@ export default authSlice.reducer;
 // optional selectors (recommended)
 export const selectUser = (state) => state.auth.user;
 export const selectIsAdmin = (state) => !!state.auth.user?.isAdmin;
+
+// PII visibility gate: only this login username may see unmasked phone/email.
+const PII_VIEWER_USERNAME = "adminr";
+export const selectCanViewPii = (state) =>
+  (state.auth.user?.user || "").trim().toLowerCase() === PII_VIEWER_USERNAME;
+// PII masking is gated by an env flag: VITE_MASK_PII_ENABLED=true restores the adminr-only
+// gate; anything else (e.g. false / unset) turns masking off so everyone sees full values.
+const MASK_PII_ENABLED = import.meta.env.VITE_MASK_PII_ENABLED === "true";
+export const selectMaskPii = (state) => MASK_PII_ENABLED && !selectCanViewPii(state);
 export const selectRoleLabel = (state) => state.auth.user?.isAdmin ? "Admin" : "Agent";
 export const selectUserName = (state) => state.auth.user?.user || state.auth.user?.full_name || "User";
 export const selectCampaingName = (state) => state.auth.user?.campaign_name || "NO CAMPAIGN";

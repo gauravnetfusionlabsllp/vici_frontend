@@ -56,9 +56,9 @@ function HeatmapChart({data,isLoading}) {
   const { hours, metrics, seriesData } = transformToHeatmap(data || apiData);
 
   // Dynamic row height calculation
-  const maxRowHeight = 40; // max height per row
+  const maxRowHeight = 50; // max height per row
   const minRowHeight = 20; // min height per row
-  const rowHeight = Math.min(maxRowHeight, Math.max(minRowHeight, 320 / metrics.length)); // scale based on container
+  const rowHeight = Math.min(maxRowHeight, Math.max(minRowHeight, 400 / metrics.length)); // scale based on container
 
   const option = {
     backgroundColor: "transparent",
@@ -134,7 +134,7 @@ function HeatmapChart({data,isLoading}) {
 
       <ReactECharts
         option={option}
-        style={{ height: Math.max(180, rowHeight * metrics.length + 50), width: "100%" }}
+        style={{ height: Math.max(210, rowHeight * metrics.length + 60), width: "100%" }}
         opts={{ renderer: "canvas" }}
         notMerge={true}
         lazyUpdate={true}

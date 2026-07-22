@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { X, CalendarRange, ChevronsRight, Loader2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useToast } from '@/shared/hooks/useToast';
 import { useSyncCampaignLeadRuleMutation } from '@/services';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskPhone } from '@/shared/lib/mask';
 import ConditionChip from './ConditionChip';
 
 export default function SyncDrawer({ lead, onClose }) {
   const { success, error } = useToast();
+  const maskPii = useSelector(selectMaskPii);
   const [sd, setSd] = useState(null);
   const [ed, setEd] = useState(null);
   const [syncRule, { isLoading }] = useSyncCampaignLeadRuleMutation();
@@ -118,7 +122,7 @@ export default function SyncDrawer({ lead, onClose }) {
                   <div className="space-y-1 max-h-28 overflow-y-auto scrollbar-thin">
                     {result.failed.map((f, i) => (
                       <div key={i} className="text-[11px] text-slate-500 font-mono">
-                        {f.phone} — <span className="text-rose-400/70">{f.reason}</span>
+                        {maskPii ? maskPhone(f.phone) : f.phone} — <span className="text-rose-400/70">{f.reason}</span>
                       </div>
                     ))}
                   </div>

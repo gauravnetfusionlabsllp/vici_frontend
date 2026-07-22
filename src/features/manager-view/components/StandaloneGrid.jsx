@@ -6,7 +6,7 @@ import GridToolbar from './GridToolbar';
 import { useMvTheme } from '../theme';
 
 // Generic grid used by the three standalone tabs (Call Analysis / Meta Leads / Hot Notes).
-export default function StandaloneGrid({ rows, columnDefs, base, getRowId }) {
+export default function StandaloneGrid({ rows, columnDefs, base, getRowId, context }) {
   const gridRef = useRef(null);
   const theme = useMvTheme();
   return (
@@ -19,6 +19,7 @@ export default function StandaloneGrid({ rows, columnDefs, base, getRowId }) {
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           theme={gridTheme(theme)}
+          context={context}
           getRowId={getRowId}
           pagination
           paginationPageSize={50}

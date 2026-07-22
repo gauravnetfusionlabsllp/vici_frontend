@@ -42,7 +42,6 @@ function App() {
                 <Route path="/leads-upload"    element={<LeadsUploadPage />} />
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/campaign-leads"  element={<CampaignLeadsPage />} />
-                <Route path="/lead-management" element={<LeadManagementPage />} />
                 <Route path="/manager-view"    element={<ManagerViewPage />} />
               </Route>
 
@@ -53,8 +52,9 @@ function App() {
               {/* Accessible to both admins and agents (PrivateRoute without
                   `allowedAdmin` skips the role check). */}
               <Route element={<PrivateRoute />}>
-                <Route path="/agent-mail" element={<AgentMailPage />} />
-                <Route path="/reporting"  element={<ReportingPage />} />
+                <Route path="/agent-mail"      element={<AgentMailPage />} />
+                <Route path="/reporting"       element={<ReportingPage />} />
+                <Route path="/lead-management" element={<LeadManagementPage />} />
               </Route>
 
               <Route path="/unauthorized" element={<UnauthorizedPage />} />

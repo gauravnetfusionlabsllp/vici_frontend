@@ -5,6 +5,8 @@ import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialS
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState, setIsCallbackDial } from "@/features/calls/slices/callSlice";
 import { useCallHangupMutation, useDialNextMutation, useGetMetaLeadByPhoneQuery } from "@/services";
 import RawDataCell from "@/features/reporting/components/RawDataCell";
+import { selectMaskPii } from "@/features/auth/slices/authSlice";
+import { maskEmail, maskPhone } from "@/shared/lib/mask";
 function normalizePhone(raw) {
   if (!raw) return "";
   // keep + and digits
@@ -82,6 +84,7 @@ function ContactDetails({inCallLogData}) {
   const dispatch = useDispatch();
 
   const lead = useSelector(selectCurrentLead);
+  const maskPii = useSelector(selectMaskPii);
   const callState = useSelector(selectCallState);
   const isCallBusy = useSelector(selectIsCallBusy);
   const [callHangup, { isLoading: isHangingUp }] = useCallHangupMutation();
@@ -295,7 +298,7 @@ function ContactDetails({inCallLogData}) {
                       <Phone className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-400">Phone</span>
                       <span className="text-slate-100 font-semibold font-mono-nums tracking-wide">
-                        {lead.phone_number || "—"}
+                        {lead.phone_number ? (maskPii ? maskPhone(lead.phone_number) : lead.phone_number) : "—"}
                       </span>
                     </div>
 
@@ -304,7 +307,7 @@ function ContactDetails({inCallLogData}) {
                         <Mail className="w-4 h-4 text-slate-400" />
                         <span className="text-slate-400">Email</span>
                         <span className="text-slate-100 font-semibold break-all">
-                          {lead.email.trim()}
+                          {maskPii ? maskEmail(lead.email.trim()) : lead.email.trim()}
                         </span>
                       </div>
                     )}

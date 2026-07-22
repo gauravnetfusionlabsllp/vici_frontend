@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { Loader2, Save, CheckCircle, Download, ChevronDown, Check } from 'lucide-react';
@@ -10,6 +11,8 @@ import {
   useUpdateHotMetaLeadCustomFieldsMutation,
 } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { DISPOSITIONS } from '@/features/leads/constants';
 import { CONTACT_OPTIONS } from '../constants';
 import { shortDate } from '../utils';
@@ -631,6 +634,7 @@ function CustomFieldCellRenderer(params) {
 
 export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [] }) {
   const { error: toastError } = useToast();
+  const maskPii = useSelector(selectMaskPii);
   const [updateLead] = useUpdateHotMetaLeadMutation();
   const [updateCustomFields] = useUpdateHotMetaLeadCustomFieldsMutation();
   const gridRef = useRef(null);
@@ -811,13 +815,18 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         field: 'phone',
         width: 130,
         cellRenderer: (p) => (
-          <span className="font-mono text-primary select-text cursor-text">{p.value}</span>
+          <span className="font-mono text-primary select-text cursor-text">
+            {maskPii ? maskPhone(p.value) : p.value}
+          </span>
         ),
       },
       {
         headerName: 'Email',
         colId: 'email',
-        valueGetter: (p) => p.data?.email || p.data?.vici_call_email || '',
+        valueGetter: (p) => {
+          const raw = p.data?.email || p.data?.vici_call_email || '';
+          return maskPii ? maskEmail(raw) : raw;
+        },
         tooltipValueGetter: (p) => p.value,
         width: 200,
         cellClass: 'text-foreground/90',
@@ -943,7 +952,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         cellRenderer: ActionCellRenderer,
       },
     ];
-  }, [formFields]);
+  }, [formFields, maskPii]);
 
   const defaultColDef = useMemo(
     () => ({

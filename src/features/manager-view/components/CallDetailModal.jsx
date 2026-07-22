@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { X, Download, Loader2, MessageSquare, Star, Headphones, Gauge, Megaphone, UserCheck, Database } from 'lucide-react';
 
 import { useDownloadRecordingMutation } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import RecordingPlayer from '@/features/reporting/components/RecordingPlayer';
 import BoolBadge from '@/features/reporting/components/BoolBadge';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { dash, fmtDateTime, fmtDuration, toContactArray } from '../utils';
 
 function fileSafe(v) {
@@ -89,6 +92,7 @@ function KeyValueDump({ title, obj }) {
 
 export default function CallDetailModal({ call, onClose }) {
   const { error: toastError } = useToast();
+  const maskPii = useSelector(selectMaskPii);
   const [triggerDownload, { isLoading: downloading }] = useDownloadRecordingMutation();
 
   // Esc to close + lock background scroll while open.
@@ -142,7 +146,7 @@ export default function CallDetailModal({ call, onClose }) {
           <div className="min-w-0">
             <div className="text-[10px] text-primary uppercase tracking-widest mb-1">Call #{dash(call.call_id)}</div>
             <div className="text-sm font-semibold text-foreground truncate">{dash(call.name)}</div>
-            <div className="text-xs font-mono text-muted-foreground mt-0.5">{dash(call.phone)}</div>
+            <div className="text-xs font-mono text-muted-foreground mt-0.5">{call.phone ? (maskPii ? maskPhone(call.phone) : call.phone) : '—'}</div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="hidden sm:flex flex-col items-end gap-1">
@@ -206,7 +210,7 @@ export default function CallDetailModal({ call, onClose }) {
               <Field label="Form">{dash(call.form_name)}</Field>
               <Field label="Ad">{dash(call.ad_name)}</Field>
               <Field label="Ad Set">{dash(call.ad_set_name)}</Field>
-              <Field label="Email">{dash(call.email)}</Field>
+              <Field label="Email">{call.email ? (maskPii ? maskEmail(call.email) : call.email) : '—'}</Field>
               <Field label="Lead Created">{fmtDateTime(call.lead_created_at)}</Field>
             </div>
           </Group>

@@ -42,6 +42,7 @@ function fromYMD(s) {
 const agentNavItems = [
   { name: "Call", path: "/call" },
   { name: "Send Email", path: "/agent-mail" },
+  { name: "Lead Management", path: "/lead-management" },
   { name: "Reporting", path: "/reporting" },
 ];
 const HOT_METAL_CAMPAIGN = "HotMetaleads";

@@ -11,7 +11,10 @@ import {
   useDeleteLeadMutation,
 } from '@/services';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { useSelector } from 'react-redux';
 import { useToast } from '@/shared/hooks/useToast';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskPhone } from '@/shared/lib/mask';
 import DatePicker from 'react-datepicker';
 import ConfirmDeletePopup from '@/shared/components/ConfirmDeletePopup';
 import DeleteCellRenderer from './components/DeleteCellRenderer';
@@ -22,6 +25,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function LeadsUploadPage() {
   const fileInputRef = useRef(null);
   const gridRef      = useRef(null);
+  const maskPii      = useSelector(selectMaskPii);
 
   const [file,             setFile]             = useState(null);
   const [pageSize,         setPageSize]         = useState(25);
@@ -121,7 +125,7 @@ export default function LeadsUploadPage() {
       const summary = `Total: ${res?.total_rows ?? '—'} | Success: ${res?.success ?? 0} | Failed: ${res?.failed ?? 0} | Skipped: ${res?.skipped ?? 0}`;
       success(`Upload completed. ${summary}`);
       const MAX_TOASTS = 8;
-      skipped.slice(0, MAX_TOASTS).forEach(({ phone, reason }) => info(`Skipped: ${phone} — ${reason}`));
+      skipped.slice(0, MAX_TOASTS).forEach(({ phone, reason }) => info(`Skipped: ${maskPii ? maskPhone(phone) : phone} — ${reason}`));
       if (skipped.length > MAX_TOASTS) info(`+${skipped.length - MAX_TOASTS} more skipped rows...`);
       if (listCampaignIssues.length) {
         const grouped = listCampaignIssues.reduce((acc, item) => {
@@ -184,11 +188,11 @@ export default function LeadsUploadPage() {
     try {
       setDeletingId(phone);
       await deleteLead([phone]).unwrap();
-      success(`Lead ${phone} deleted`);
+      success(`Lead ${maskPii ? maskPhone(phone) : phone} deleted`);
       setDeleteTarget(null);
     } catch { error('Failed to delete lead'); }
     finally { setDeletingId(null); }
-  }, [deleteTarget, deleteLead, success, error]);
+  }, [deleteTarget, deleteLead, success, error, maskPii]);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     if (!selectedPhones.length) return;
@@ -218,13 +222,18 @@ export default function LeadsUploadPage() {
     api.exportDataAsCsv({
       fileName: `leads-${stamp}.csv`,
       columnKeys,
+      // Mask phone from the raw row value so export never leaks it (independent of the display formatter).
+      processCellCallback: (p) =>
+        (maskPii && p.column.getColDef().field === 'phone_number'
+          ? maskPhone(p.node?.data?.phone_number ?? p.value)
+          : p.value),
     });
     success(`Downloaded ${api.getDisplayedRowCount()} lead(s)`);
-  }, [success, info]);
+  }, [success, info, maskPii]);
 
   const columnDefs = useMemo(() => [
     { headerName: 'ENTRY DATE', field: 'entry_date', minWidth: 140, valueFormatter: ({ value }) => value ? new Date(value).toLocaleDateString() : '—' },
-    { headerName: 'PHONE',      field: 'phone_number', minWidth: 150, cellClass: 'font-mono text-slate-300', filter: true },
+    { headerName: 'PHONE',      field: 'phone_number', minWidth: 150, cellClass: 'font-mono text-slate-300', filter: true, valueFormatter: ({ value }) => (value ? (maskPii ? maskPhone(value) : value) : '—') },
     { headerName: 'USER',       field: 'user',         minWidth: 140, valueFormatter: ({ value }) => value || '—' },
     { headerName: 'FIRST NAME', field: 'first_name',   minWidth: 140, valueFormatter: ({ value }) => value || '—', resizable: true },
     { headerName: 'LAST NAME',  field: 'last_name',    minWidth: 140, flex: 1, resizable: true, valueFormatter: ({ value }) => value || '—' },
@@ -233,7 +242,7 @@ export default function LeadsUploadPage() {
     { headerName: 'LIST ID',    field: 'list_id',      minWidth: 90,  maxWidth: 100, cellClass: 'font-mono text-slate-300' },
     { headerName: 'LEAD ID',    field: 'lead_id',      minWidth: 100, maxWidth: 110, cellClass: 'font-mono text-slate-300' },
     { headerName: 'DELETE', colId: 'delete', minWidth: 120, maxWidth: 130, pinned: 'right', lockPinned: true, suppressMovable: true, sortable: false, filter: false, cellRenderer: DeleteCellRenderer },
-  ], []);
+  ], [maskPii]);
 
   const gridContext    = useMemo(() => ({ activeNumber, handleRowCall, onDeleteLead, deletingId }), [activeNumber, handleRowCall, onDeleteLead, deletingId]);
   const rowSelectionConfig = useMemo(() => ({
@@ -386,7 +395,7 @@ export default function LeadsUploadPage() {
       <ConfirmDeletePopup
         open={!!deleteTarget}
         title="Delete Lead"
-        message={`Are you sure you want to delete lead with phone number ${deleteTarget?.phone_number}?`}
+        message={`Are you sure you want to delete lead with phone number ${maskPii ? maskPhone(deleteTarget?.phone_number) : deleteTarget?.phone_number}?`}
         loading={deletingId === deleteTarget?.phone_number}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}

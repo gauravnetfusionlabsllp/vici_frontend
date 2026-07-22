@@ -1,6 +1,15 @@
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Mask phone/email exports for non-PII-viewers. Returns the value to write for a given field.
+const maskExportValue = (field, value) => {
+  if (value === null || value === undefined || value === '') return value;
+  if (field === 'phone') return maskPhone(value);
+  if (field === 'email') return maskEmail(value);
+  return value;
+};
 
 // Dark grid theme (mirrors reporting/HotLeadsGrid).
 export const agThemeDark = themeQuartz.withParams({
@@ -59,24 +68,32 @@ const stamp = () => {
 const exportableCols = (api) =>
   api.getAllDisplayedColumns().filter((c) => !c.getColId().startsWith('__'));
 
-export function exportCsv(api, base) {
+export function exportCsv(api, base, maskPii = false) {
   if (!api || api.getDisplayedRowCount() === 0) return 0;
   api.exportDataAsCsv({
     fileName: `${base}-${stamp()}.csv`,
     columnKeys: exportableCols(api).map((c) => c.getColId()),
+    // Mask phone/email from the raw row value (independent of the display formatter).
+    processCellCallback: (p) => {
+      const field = p.column.getColDef().field;
+      const raw = p.node?.data?.[field] ?? p.value;
+      return maskPii ? maskExportValue(field, raw) : p.value;
+    },
   });
   return api.getDisplayedRowCount();
 }
 
-export async function exportExcel(api, base) {
+export async function exportExcel(api, base, maskPii = false) {
   if (!api || api.getDisplayedRowCount() === 0) return 0;
   const cols = exportableCols(api);
   const headers = cols.map((c) => c.getColDef().headerName || c.getColId());
+  const fields = cols.map((c) => c.getColDef().field);
   const rows = [];
   api.forEachNodeAfterFilterAndSort((node) => {
     const row = {};
     cols.forEach((c, i) => {
-      const v = api.getValue(c, node);
+      let v = api.getValue(c, node);
+      if (maskPii) v = maskExportValue(fields[i], v);
       row[headers[i]] = v === null || v === undefined ? '' : v;
     });
     rows.push(row);

@@ -1,9 +1,12 @@
 import { useCallback, useMemo, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
 import { shortDate } from '@/features/reporting/utils';
 import RawDataCell from '@/features/reporting/components/RawDataCell';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -11,6 +14,7 @@ const RawFieldsCellRenderer = (p) => <RawDataCell data={p.value} />;
 
 export default function MetaLeadsGrid({ rows }) {
   const gridRef = useRef(null);
+  const maskPii = useSelector(selectMaskPii);
 
   const columnDefs = useMemo(
     () => [
@@ -65,14 +69,17 @@ export default function MetaLeadsGrid({ rows }) {
         field: 'phone_number',
         width: 140,
         cellRenderer: (p) => (
-          <span className="font-mono text-primary select-text cursor-text">{p.value}</span>
+          <span className="font-mono text-primary select-text cursor-text">
+            {maskPii ? maskPhone(p.value) : p.value}
+          </span>
         ),
       },
       {
         headerName: 'Email',
         field: 'email',
         width: 220,
-        tooltipField: 'email',
+        valueFormatter: (p) => (maskPii ? maskEmail(p.value) : p.value),
+        tooltipValueGetter: (p) => (maskPii ? maskEmail(p.value) : p.value),
         cellClass: 'text-foreground/90',
       },
       {
@@ -108,7 +115,7 @@ export default function MetaLeadsGrid({ rows }) {
         cellRenderer: RawFieldsCellRenderer,
       },
     ],
-    [],
+    [maskPii],
   );
 
   const defaultColDef = useMemo(

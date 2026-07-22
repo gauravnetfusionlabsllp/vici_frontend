@@ -1,8 +1,11 @@
 import { useCallback, useMemo, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { Star } from 'lucide-react';
 
 import BoolBadge from '@/features/reporting/components/BoolBadge';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskPhone } from '@/shared/lib/mask';
 import { gridTheme, defaultColDef } from './gridConfig';
 import GridToolbar from './GridToolbar';
 import { fmtDateTime } from '../utils';
@@ -44,13 +47,14 @@ const textFmt = (p) => (p.value === null || p.value === undefined || p.value ===
 export default function CombinedGrid({ rows, onRowClick }) {
   const gridRef = useRef(null);
   const theme = useMvTheme();
+  const maskPii = useSelector(selectMaskPii);
 
   const columnDefs = useMemo(
     () => [
       { headerName: 'Call Date', field: 'call_date', width: 150, valueFormatter: (p) => fmtDateTime(p.value), cellClass: 'font-mono-nums text-muted-foreground' },
       { headerName: 'Agent', colId: 'agent', width: 150, valueGetter: (p) => p.data?.agent_name || p.data?.agent_user || '', valueFormatter: textFmt, cellClass: 'text-foreground/85' },
       { headerName: 'Name', field: 'name', width: 150, valueFormatter: textFmt, cellClass: 'font-medium text-foreground' },
-      { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: textFmt },
+      { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: (p) => (p.value === null || p.value === undefined || p.value === '' ? '—' : (maskPii ? maskPhone(p.value) : p.value)) },
       { headerName: 'Campaign', field: 'campaign_name', width: 170, tooltipField: 'campaign_name', valueFormatter: textFmt },
       { headerName: 'Form', field: 'form_name', width: 160, tooltipField: 'form_name', valueFormatter: textFmt },
       { headerName: 'Ad', field: 'ad_name', width: 160, tooltipField: 'ad_name', valueFormatter: textFmt },
@@ -62,7 +66,7 @@ export default function CombinedGrid({ rows, onRowClick }) {
       { headerName: 'Dialer Status', field: 'vici_lead_status', width: 130, valueFormatter: textFmt, cellClass: 'font-mono text-foreground/80' },
       { headerName: 'Response', field: 'response', width: 180, tooltipField: 'response', valueFormatter: textFmt, cellClass: 'text-foreground/85' },
     ],
-    [],
+    [maskPii],
   );
 
   const onRowClicked = useCallback((e) => onRowClick?.(e.data), [onRowClick]);

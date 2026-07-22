@@ -1,5 +1,8 @@
+import { useSelector } from 'react-redux';
 import { ArrowLeft, Send, Loader2, Lock, Paperclip } from 'lucide-react';
 import { getFileIcon } from '@/features/email-templates/utils';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail } from '@/shared/lib/mask';
 import { fillText } from '../utils/placeholders';
 import { fmtSize } from '../utils/format';
 
@@ -11,9 +14,11 @@ export default function PreviewView({
   onSend,
   sending,
 }) {
+  const maskPii = useSelector(selectMaskPii);
   const subjectRendered = fillText(form.subject, form.placeholders);
   const bodyRendered = fillText(form.body, form.placeholders);
   const selectedFiles = attachments.filter((a) => form.attachIds.includes(a.id));
+  const fmtAddrs = (arr) => (maskPii ? arr.map(maskEmail) : arr).join(', ');
 
   return (
     <div className="space-y-4">
@@ -24,8 +29,8 @@ export default function PreviewView({
               <Lock className="w-3 h-3 text-muted-foreground" /> {officeEmail}
             </span>
           ) },
-          { label: 'To', value: form.toEmails.join(', ') || '—' },
-          ...(form.cc.length ? [{ label: 'Cc', value: form.cc.join(', ') }] : []),
+          { label: 'To', value: fmtAddrs(form.toEmails) || '—' },
+          ...(form.cc.length ? [{ label: 'Cc', value: fmtAddrs(form.cc) }] : []),
           { label: 'Subject', value: subjectRendered || '—' },
           ...(form.recipientName || form.leadId ? [{
             label: 'Lead',

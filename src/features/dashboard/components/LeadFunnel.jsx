@@ -114,7 +114,7 @@ export function LeadFunnel() {
 )
 
   return (
-    <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up">
+    <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up h-full flex flex-col">
       <div className="flex flex-col  justify-between m-2 lg:mb-2">
   <div className="flex justify-between">
     <h3 className="text-xl font-semibold text-white">Lead Funnel</h3>
@@ -127,9 +127,9 @@ export function LeadFunnel() {
     </p>
 </div>
 
-      <div className="relative flex flex-col items-center gap-0 mt-2 px-4 stagger-children">
+      <div className="relative flex flex-col items-center gap-0 mt-2 px-4 stagger-children flex-1 justify-center">
         {stages.map((stage, index) => (
-          <div key={stage.label} className="relative w-full flex items-center justify-center mb-2 transition-smooth hover:brightness-110">
+          <div key={stage.label} className="relative w-full flex items-center justify-center mb-2 flex-1 min-h-0 max-h-20 transition-smooth hover:brightness-110">
             {/* Left Label */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 text-left w-20">
               <div className="text-xs uppercase tracking-wider">{stage.label}</div>
@@ -137,7 +137,7 @@ export function LeadFunnel() {
             </div>
 
             {/* Funnel Stage */}
-            <div className="relative flex items-center justify-center h-12 w-full">
+            <div className="relative flex items-center justify-center h-full min-h-[3rem] w-full">
               {/* Trapezoid Shape using clip-path */}
               <div
                 className="absolute inset-0 bg-gradient-to-b from-[#1e3a5f] to-[#0d2847] border-t  border-b border-slate-600/40 "

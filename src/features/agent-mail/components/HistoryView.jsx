@@ -1,9 +1,13 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { RefreshCw, Search, CheckCircle2, XCircle, Paperclip, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import { useGetAgentEmailSendLogQuery } from '@/services';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmailList } from '@/shared/lib/mask';
 import { fmtDate } from '../utils/format';
 
 export default function HistoryView() {
+  const maskPii = useSelector(selectMaskPii);
   const [leadFilter, setLeadFilter] = useState('');
   const [appliedLead, setAppliedLead] = useState(undefined);
   const [expanded, setExpanded] = useState(null);
@@ -93,7 +97,7 @@ export default function HistoryView() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-foreground font-medium truncate">{r.subject || '(no subject)'}</p>
                     <p className="text-[11px] text-muted-foreground truncate">
-                      {r.to_emails}
+                      {maskPii ? maskEmailList(r.to_emails) : r.to_emails}
                       {r.recipient_name && <span> · {r.recipient_name}</span>}
                       {r.lead_id != null && <span> · #{r.lead_id}</span>}
                     </p>
@@ -126,8 +130,8 @@ export default function HistoryView() {
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
                       <Meta label="From"    value={r.from_email} />
-                      <Meta label="To"      value={r.to_emails} />
-                      <Meta label="Cc"      value={r.cc || '—'} />
+                      <Meta label="To"      value={maskPii ? maskEmailList(r.to_emails) : r.to_emails} />
+                      <Meta label="Cc"      value={(maskPii ? maskEmailList(r.cc) : r.cc) || '—'} />
                       <Meta label="Sent at" value={fmtDate(r.sent_at)} />
                     </div>
                     <div className="rounded-lg border border-white/10 bg-slate-950/40 p-3">

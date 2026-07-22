@@ -44,10 +44,10 @@ export function CallStatusChart({ callStatus ,CallStatusLoading = true}) {
 
   const hasData = data.length > 0;
 return CallStatusLoading ? (
-    <SkeletonChart type="pie" height={170} />
+    <SkeletonChart type="pie" height={200} />
   ) :
    (
-    <div className="relative w-full h-[170px] animate-fade-in">
+    <div className="relative w-full h-[200px] animate-fade-in">
       {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">
           No call data
@@ -60,8 +60,8 @@ return CallStatusLoading ? (
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={38}
-            outerRadius={62}
+            innerRadius={46}
+            outerRadius={74}
             paddingAngle={3}
             dataKey="value"
             stroke="none"

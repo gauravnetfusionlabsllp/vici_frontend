@@ -1,6 +1,9 @@
 import { useState, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { X } from 'lucide-react';
 import { isValidEmail } from '../utils/placeholders';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail } from '@/shared/lib/mask';
 
 export default function ChipInput({
   values,
@@ -8,6 +11,7 @@ export default function ChipInput({
   placeholder = 'name@example.com',
   ariaLabel,
 }) {
+  const maskPii = useSelector(selectMaskPii);
   const [input, setInput] = useState('');
   const [invalid, setInvalid] = useState(false);
   const inputRef = useRef(null);
@@ -58,19 +62,22 @@ export default function ChipInput({
         ${invalid ? 'border-destructive/60' : 'border-white/10 focus-within:border-primary/40'}`}
       aria-label={ariaLabel}
     >
-      {values.map((v) => (
+      {values.map((v) => {
+        const label = maskPii ? maskEmail(v) : v;
+        return (
         <span key={v} className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-2 py-0.5 text-xs text-primary-foreground">
-          <span className="text-foreground/90">{v}</span>
+          <span className="text-foreground/90">{label}</span>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); remove(v); }}
             className="text-muted-foreground hover:text-destructive transition-smooth"
-            aria-label={`Remove ${v}`}
+            aria-label={`Remove ${label}`}
           >
             <X className="w-3 h-3" />
           </button>
         </span>
-      ))}
+        );
+      })}
       <input
         ref={inputRef}
         value={input}

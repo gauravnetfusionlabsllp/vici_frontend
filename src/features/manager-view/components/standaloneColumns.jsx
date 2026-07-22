@@ -1,16 +1,20 @@
 import BoolBadge from '@/features/reporting/components/BoolBadge';
 import RecordingPlayer from '@/features/reporting/components/RecordingPlayer';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { fmtDateTime, fmtDuration, toContactArray } from '../utils';
 
 const textFmt = (p) => (p.value === null || p.value === undefined || p.value === '' ? '—' : p.value);
 const dateFmt = (p) => fmtDateTime(p.value);
 const jsonText = (v) => (v && typeof v === 'object' ? JSON.stringify(v) : v ?? '');
+// Mask phone/email for everyone but the PII viewer. maskPii comes from grid context.
+const phoneFmt = (p) => (p.value === null || p.value === undefined || p.value === '' ? '—' : (p.context?.maskPii ? maskPhone(p.value) : p.value));
+const emailFmt = (p) => (p.value === null || p.value === undefined || p.value === '' ? '—' : (p.context?.maskPii ? maskEmail(p.value) : p.value));
 
 // § 2.2 — call-analysis
 export const callAnalysisColumns = [
   { headerName: 'Call ID', field: 'call_id', width: 90, cellClass: 'font-mono text-muted-foreground' },
   { headerName: 'Agent', field: 'agent_user', width: 110, valueFormatter: textFmt },
-  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: textFmt },
+  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: phoneFmt },
   { headerName: 'Start Time', field: 'start_time', width: 150, valueFormatter: dateFmt, cellClass: 'font-mono-nums text-muted-foreground' },
   { headerName: 'Duration', field: 'length_in_sec', width: 100, valueFormatter: (p) => fmtDuration(p.value), cellClass: 'font-mono-nums' },
   { headerName: 'Rating', field: 'overall_rating', width: 90, valueFormatter: textFmt, filter: 'agNumberColumnFilter' },
@@ -40,8 +44,8 @@ export const metaLeadsColumns = [
   { headerName: 'Ad', field: 'ad_name', width: 160, tooltipField: 'ad_name', valueFormatter: textFmt },
   { headerName: 'Created', field: 'created_at', width: 150, valueFormatter: dateFmt, cellClass: 'font-mono-nums text-muted-foreground' },
   { headerName: 'Name', field: 'name', width: 150, valueFormatter: textFmt, cellClass: 'font-medium text-foreground' },
-  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: textFmt },
-  { headerName: 'Email', field: 'email', width: 200, tooltipField: 'email', valueFormatter: textFmt },
+  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: phoneFmt },
+  { headerName: 'Email', field: 'email', width: 200, tooltipValueGetter: (p) => (p.context?.maskPii ? maskEmail(p.value) : p.value), valueFormatter: emailFmt },
   {
     headerName: 'Form Fields', field: 'raw_fields', width: 220, sortable: false,
     valueGetter: (p) => jsonText(p.data?.raw_fields),
@@ -57,7 +61,7 @@ export const hotNotesColumns = [
   { headerName: 'Lead ID', field: 'meta_lead_id', width: 90, cellClass: 'font-mono text-muted-foreground' },
   { headerName: 'Agent', colId: 'agent', width: 150, valueGetter: (p) => p.data?.agent_name || p.data?.agent_user || '', valueFormatter: textFmt },
   { headerName: 'Name', field: 'name', width: 150, valueFormatter: textFmt, cellClass: 'font-medium text-foreground' },
-  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: textFmt },
+  { headerName: 'Phone', field: 'phone', width: 140, cellClass: 'font-mono text-primary', valueFormatter: phoneFmt },
   { headerName: 'Contacted Via', field: 'how_contacted', width: 160, sortable: false, valueGetter: (p) => toContactArray(p.data?.how_contacted).join(', '), valueFormatter: textFmt },
   { headerName: 'Response', field: 'response', width: 200, tooltipField: 'response', valueFormatter: textFmt, cellClass: 'text-foreground/85' },
   { headerName: 'Registered', field: 'client_registered', width: 120, cellClass: 'flex items-center', cellRenderer: (p) => <BoolBadge value={p.value} /> },

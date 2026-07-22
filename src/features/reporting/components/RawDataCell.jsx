@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSelector } from 'react-redux';
 import { Check, Eye, X } from 'lucide-react';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
 const POPOVER_WIDTH = 380;
 const POPOVER_MAX_HEIGHT = 360;
@@ -28,6 +31,18 @@ function prettyValue(v) {
   return s.replace(/_/g, ' ');
 }
 
+// When masking is on, mask any email / phone value; otherwise show the pretty value.
+function displayValue(v, maskPii) {
+  if (maskPii && typeof v === 'string') {
+    const s = v.trim();
+    const isEmail = /@/.test(s) && !/\s/.test(s);
+    const isPhone = /^\+?\d[\d\s().-]{5,}$/.test(s);
+    if (isEmail) return maskEmail(s);
+    if (isPhone) return maskPhone(s);
+  }
+  return prettyValue(v);
+}
+
 function valueKindCls(v) {
   if (typeof v !== 'string') return 'text-foreground/90';
   if (/@/.test(v) && !/\s/.test(v)) return 'text-primary font-mono';
@@ -49,6 +64,7 @@ function clamp(value, min, max) {
 }
 
 export default function RawDataCell({ data }) {
+  const maskPii = useSelector(selectMaskPii);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const triggerRef = useRef(null);
@@ -176,7 +192,7 @@ export default function RawDataCell({ data }) {
                       {humanizeKey(k)}
                     </dt>
                     <dd className={`text-[11px]  ${valueKindCls(v)}`}>
-                      {prettyValue(v)}
+                      {displayValue(v, maskPii)}
                     </dd>
                   </div>
                 ))}

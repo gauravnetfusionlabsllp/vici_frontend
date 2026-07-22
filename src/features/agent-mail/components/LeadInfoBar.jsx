@@ -1,6 +1,12 @@
+import { useSelector } from 'react-redux';
 import { User2, X } from 'lucide-react';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
 export default function LeadInfoBar({ leadId, name, email, phone, onRemove }) {
+  const maskPii = useSelector(selectMaskPii);
+  const displayEmail = maskPii ? maskEmail(email) : email;
+  const displayPhone = maskPii ? maskPhone(phone) : phone;
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 animate-fade-in">
       <div className="flex items-center gap-2 min-w-0">
@@ -12,7 +18,7 @@ export default function LeadInfoBar({ leadId, name, email, phone, onRemove }) {
             {name || 'Lead'} <span className="text-muted-foreground font-normal">#{leadId}</span>
           </p>
           <p className="text-[11px] text-muted-foreground truncate">
-            {email || '—'}{phone ? ` · ${phone}` : ''}
+            {displayEmail || '—'}{phone ? ` · ${displayPhone}` : ''}
           </p>
         </div>
       </div>

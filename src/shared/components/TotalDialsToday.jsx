@@ -110,7 +110,7 @@ const TotalDialsToday = ({ overview }) => {
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto h-32 scrollbar-thin scrollbar-auto-hide stagger-children">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 stagger-children">
           {isBusy
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonOverviewCard key={i} />)
             : kpis.map(({ label, value, icon, trend, color }) => (

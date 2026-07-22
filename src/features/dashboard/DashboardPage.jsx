@@ -64,9 +64,11 @@ export default function DashboardPage() {
     </div>
 
     {/* RIGHT COLUMN */}
-    <div className="space-y-4 stagger-children">
-      <LeadFunnel />
-      <RnrTierFunnel />
+    <div className="flex flex-col gap-4 stagger-children">
+      <div className="flex-1 flex flex-col min-h-0">
+        <LeadFunnel />
+      </div>
+      {/* <RnrTierFunnel /> */}
       <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth">
         <div className="flex justify-between items-center m-2 lg:mb-4">
             <h3 className="text-xl leading-[1rem] font-semibold text-white flex items-center gap-2">

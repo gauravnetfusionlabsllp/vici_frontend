@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
 import { LayoutDashboard, RefreshCw, Loader2, AlertTriangle, Inbox } from 'lucide-react';
+
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
 
 import {
   useGetManagerViewCombinedQuery,
@@ -70,6 +73,8 @@ function QueryPanel({ query, isEmpty, emptyMsg, skeleton, onRetry, children }) {
 
 export default function ManagerViewPage() {
   const { error: toastError } = useToast();
+  const maskPii = useSelector(selectMaskPii);
+  const gridContext = useMemo(() => ({ maskPii }), [maskPii]);
   const [theme, setTheme] = useState(readInitialTheme);
   const [activeTab, setActiveTab] = useState('overview');
   const [draft, setDraft] = useState(makeDefaultFilters);
@@ -245,7 +250,7 @@ export default function ManagerViewPage() {
               onRetry={callAnalysis.refetch}
             >
               <StandaloneGrid rows={callAnalysis.data ?? []} columnDefs={callAnalysisColumns} base="call-analysis"
-                getRowId={(p) => `ca-${p.data.call_id}`} />
+                context={gridContext} getRowId={(p) => `ca-${p.data.call_id}`} />
             </QueryPanel>
           )}
 
@@ -258,7 +263,7 @@ export default function ManagerViewPage() {
               onRetry={metaLeads.refetch}
             >
               <StandaloneGrid rows={metaLeads.data ?? []} columnDefs={metaLeadsColumns} base="meta-leads"
-                getRowId={(p) => `ml-${p.data.lead_id}`} />
+                context={gridContext} getRowId={(p) => `ml-${p.data.lead_id}`} />
             </QueryPanel>
           )}
 
@@ -271,7 +276,7 @@ export default function ManagerViewPage() {
               onRetry={hotNotes.refetch}
             >
               <StandaloneGrid rows={hotNotes.data ?? []} columnDefs={hotNotesColumns} base="hot-lead-notes"
-                getRowId={(p) => `hn-${p.data.note_id}`} />
+                context={gridContext} getRowId={(p) => `hn-${p.data.note_id}`} />
             </QueryPanel>
           )}
 

@@ -1,20 +1,23 @@
+import { useSelector } from 'react-redux';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/shared/hooks/useToast';
+import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { exportCsv, exportExcel } from './gridConfig';
 
 // Export buttons shared by every manager-view grid. `gridRef` is the AgGridReact ref.
 export default function GridToolbar({ gridRef, base, count }) {
   const { success, info, error } = useToast();
+  const maskPii = useSelector(selectMaskPii);
 
   const handleCsv = () => {
-    const n = exportCsv(gridRef.current?.api, base);
+    const n = exportCsv(gridRef.current?.api, base, maskPii);
     if (n) success(`Exported ${n} row(s) to CSV`);
     else info('Nothing to export');
   };
 
   const handleXlsx = async () => {
     try {
-      const n = await exportExcel(gridRef.current?.api, base);
+      const n = await exportExcel(gridRef.current?.api, base, maskPii);
       if (n) success(`Exported ${n} row(s) to Excel`);
       else info('Nothing to export');
     } catch {
