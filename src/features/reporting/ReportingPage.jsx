@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Flame, Loader2, RefreshCw, Search, AlertTriangle, Columns3 } from 'lucide-react';
+import { Flame, Loader2, RefreshCw, Search, AlertTriangle, Columns3, Sun, Moon } from 'lucide-react';
 
 import { selectIsAdmin, selectUser } from '@/features/auth/slices/authSlice';
 import { useGetHotMetaLeadsQuery, useGetHotMetaLeadNotesMappingQuery } from '@/services';
@@ -8,6 +8,19 @@ import { SkeletonTable } from '@/shared/components/ui';
 
 import HotLeadsGrid from './components/HotLeadsGrid';
 import ManageCustomColumnsModal from './components/ManageCustomColumnsModal';
+import LeadDetailModal from './components/LeadDetailModal';
+
+// Page-scoped light/dark theme, persisted independently from other pages. Defaults to dark
+// (the app-wide look); the header toggle exposes the light "spreadsheet" theme.
+const RV_THEME_KEY = 'rv-theme';
+function readInitialTheme() {
+  try {
+    const v = localStorage.getItem(RV_THEME_KEY);
+    return v === 'light' || v === 'dark' ? v : 'dark';
+  } catch {
+    return 'dark';
+  }
+}
 
 export default function ReportingPage() {
   const user = useSelector(selectUser);
@@ -29,6 +42,13 @@ export default function ReportingPage() {
 
   const [search, setSearch] = useState('');
   const [columnsOpen, setColumnsOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
+
+  const [theme, setTheme] = useState(readInitialTheme);
+  useEffect(() => {
+    try { localStorage.setItem(RV_THEME_KEY, theme); } catch { /* ignore */ }
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -49,7 +69,7 @@ export default function ReportingPage() {
   );
 
   return (
-    <div className="space-y-2 stagger-children">
+    <div className="rv-scope space-y-2 stagger-children" data-theme={theme}>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-b from-card/70 to-card/40 px-4 py-2.5 transition-smooth">
         <div className="pointer-events-none absolute inset-0 opacity-60
@@ -98,6 +118,15 @@ export default function ReportingPage() {
               </button>
             )}
             <button
+              onClick={toggleTheme}
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth"
+              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              <span className="text-xs">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+            <button
               onClick={refetch}
               disabled={isFetching}
               className="h-7 w-7 grid place-items-center rounded-md border border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth disabled:opacity-50"
@@ -136,7 +165,14 @@ export default function ReportingPage() {
             {search ? 'No leads match your search.' : 'No leads found.'}
           </div>
         ) : (
-          <HotLeadsGrid rows={filtered} currentUser={user} isAdmin={isAdmin} formFields={formFields} />
+          <HotLeadsGrid
+            rows={filtered}
+            currentUser={user}
+            isAdmin={isAdmin}
+            formFields={formFields}
+            theme={theme}
+            onRowClick={setSelectedLead}
+          />
         )}
       </div>
 
@@ -145,6 +181,10 @@ export default function ReportingPage() {
           onClose={() => setColumnsOpen(false)}
           formFields={formFields}
         />
+      )}
+
+      {selectedLead && (
+        <LeadDetailModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
       )}
     </div>
   );

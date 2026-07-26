@@ -21,6 +21,7 @@ const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPag
 const ReportingPage      = lazy(() => import('@/features/reporting/ReportingPage'));
 const LeadManagementPage = lazy(() => import('@/features/lead-management/LeadManagementPage'));
 const ManagerViewPage    = lazy(() => import('@/features/manager-view/ManagerViewPage'));
+const WhatsAppAdminPage  = lazy(() => import('@/features/whatsapp-admin/WhatsAppAdminPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -47,6 +48,11 @@ function App() {
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>
                 <Route path="/call" element={<CallPage />} />
+              </Route>
+
+              {/* WhatsApp admin console — visible only to the `adminr` login user. */}
+              <Route element={<PrivateRoute requireAdminr />}>
+                <Route path="/whatsapp-admin" element={<WhatsAppAdminPage />} />
               </Route>
 
               {/* Accessible to both admins and agents (PrivateRoute without

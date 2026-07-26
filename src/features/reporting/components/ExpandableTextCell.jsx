@@ -13,7 +13,7 @@ function clamp(value, min, max) {
 
 // Read-only expandable cell for long text (transcript, call summary). Shows a
 // short preview in the cell and the full, wrapped text in a portal popover.
-export default function ExpandableTextCell({ text, title = 'Details' }) {
+export default function ExpandableTextCell({ text, title = 'Details', theme }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const triggerRef = useRef(null);
@@ -98,6 +98,7 @@ export default function ExpandableTextCell({ text, title = 'Details' }) {
       {open && pos && createPortal(
         <div
           ref={popoverRef}
+          data-theme={theme}
           style={{
             position: 'fixed',
             ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
@@ -105,7 +106,7 @@ export default function ExpandableTextCell({ text, title = 'Details' }) {
             width: POPOVER_WIDTH,
             maxHeight: POPOVER_MAX_HEIGHT,
           }}
-          className="z-[100] rounded-lg border border-border bg-popover shadow-[0_18px_50px_-10px_rgba(0,0,0,0.7)] flex flex-col"
+          className="rv-scope z-[100] rounded-lg border border-border bg-popover shadow-[0_18px_50px_-10px_rgba(0,0,0,0.7)] flex flex-col"
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{title}</span>

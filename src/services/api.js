@@ -16,6 +16,7 @@ export const dashboardApi = createApi({
     'HotMetaLeads',
     'CustomColumns',
     'ManagerView',
+    'WhatsappMessages',
   ],
   endpoints: () => ({}),
 });

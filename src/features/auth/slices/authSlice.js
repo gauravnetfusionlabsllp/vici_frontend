@@ -40,6 +40,10 @@ export const selectIsAdmin = (state) => !!state.auth.user?.isAdmin;
 const PII_VIEWER_USERNAME = "adminr";
 export const selectCanViewPii = (state) =>
   (state.auth.user?.user || "").trim().toLowerCase() === PII_VIEWER_USERNAME;
+
+// WhatsApp admin console gate — same single-user rule (login username === "adminr").
+export const selectIsWhatsappAdmin = (state) =>
+  (state.auth.user?.user || "").trim().toLowerCase() === PII_VIEWER_USERNAME;
 // PII masking is gated by an env flag: VITE_MASK_PII_ENABLED=true restores the adminr-only
 // gate; anything else (e.g. false / unset) turns masking off so everyone sees full values.
 const MASK_PII_ENABLED = import.meta.env.VITE_MASK_PII_ENABLED === "true";

@@ -63,7 +63,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function RawDataCell({ data }) {
+export default function RawDataCell({ data, theme }) {
   const maskPii = useSelector(selectMaskPii);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
@@ -153,6 +153,7 @@ export default function RawDataCell({ data }) {
       {open && pos && createPortal(
         <div
           ref={popoverRef}
+          data-theme={theme}
           style={{
             position: 'fixed',
             top: pos.top,
@@ -160,7 +161,7 @@ export default function RawDataCell({ data }) {
             width: POPOVER_WIDTH,
             maxHeight: POPOVER_MAX_HEIGHT,
           }}
-          className="z-[100] rounded-lg border border-border bg-popover shadow-[0_18px_50px_-10px_rgba(0,0,0,0.7)] animate-fade-in flex flex-col"
+          className="rv-scope z-[100] rounded-lg border border-border bg-popover shadow-[0_18px_50px_-10px_rgba(0,0,0,0.7)] animate-fade-in flex flex-col"
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">

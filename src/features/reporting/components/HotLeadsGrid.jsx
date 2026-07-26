@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { Loader2, Save, CheckCircle, Download, ChevronDown, Check } from 'lucide-react';
 
 import {
@@ -14,6 +14,7 @@ import { useToast } from '@/shared/hooks/useToast';
 import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { DISPOSITIONS } from '@/features/leads/constants';
+import { gridTheme } from '@/features/manager-view/components/gridConfig';
 import { CONTACT_OPTIONS } from '../constants';
 import { shortDate } from '../utils';
 import BoolBadge from './BoolBadge';
@@ -77,7 +78,7 @@ const parseTriBool = (s) => (s === '' ? null : s === 'true');
 // ────────── Cell renderers (defined at module scope so columnDefs stay stable) ──────────
 
 function ContactCellRenderer(params) {
-  const { canEdit, draftsRef, markDirty } = params.context;
+  const { canEdit, draftsRef, markDirty, theme } = params.context;
   const row = params.data;
   const editable = canEdit(row);
 
@@ -148,8 +149,9 @@ function ContactCellRenderer(params) {
       {open && pos && createPortal(
         <div
           id={`contact-popup-${row.lead_id}`}
+          data-theme={theme}
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 1000 }}
-          className="rounded-md border border-border bg-card shadow-lg overflow-hidden"
+          className="rv-scope rounded-md border border-border bg-card shadow-lg overflow-hidden"
         >
           {CONTACT_OPTIONS.filter(Boolean).map((opt) => {
             const active = selected.includes(opt);
@@ -311,15 +313,15 @@ function ViciLeadStatusCellRenderer(params) {
 }
 
 function RawDataCellRenderer(params) {
-  return <RawDataCell data={params.value} />;
+  return <RawDataCell data={params.value} theme={params.context.theme} />;
 }
 
 function SummaryCellRenderer(params) {
-  return <ExpandableTextCell text={params.value} title="Call summary" />;
+  return <ExpandableTextCell text={params.value} title="Call summary" theme={params.context.theme} />;
 }
 
 function TranscriptCellRenderer(params) {
-  return <ExpandableTextCell text={params.value} title="Transcript" />;
+  return <ExpandableTextCell text={params.value} title="Transcript" theme={params.context.theme} />;
 }
 
 // 0–5 star rating, mirrors the agents-table renderer (partial fill via fillPercent).
@@ -512,7 +514,7 @@ function CustomSelectCell({ params }) {
 }
 
 function CustomMultiSelectCell({ params }) {
-  const { canEdit } = params.context;
+  const { canEdit, theme } = params.context;
   const row = params.data;
   const { name, options = [] } = params.fieldDef;
   const editable = canEdit(row);
@@ -579,8 +581,9 @@ function CustomMultiSelectCell({ params }) {
       {open && pos && createPortal(
         <div
           id={`cf-popup-${row.lead_id}-${name}`}
+          data-theme={theme}
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 1000 }}
-          className="rounded-md border border-border bg-card shadow-lg overflow-hidden max-h-56 overflow-y-auto scrollbar-thin"
+          className="rv-scope rounded-md border border-border bg-card shadow-lg overflow-hidden max-h-56 overflow-y-auto scrollbar-thin"
         >
           {options.length === 0 ? (
             <div className="px-2 py-2 text-xs text-muted-foreground italic">No options</div>
@@ -632,7 +635,7 @@ function CustomFieldCellRenderer(params) {
 
 // ────────── Grid wrapper ──────────
 
-export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [] }) {
+export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [], onRowClick, theme = 'dark' }) {
   const { error: toastError } = useToast();
   const maskPii = useSelector(selectMaskPii);
   const [updateLead] = useUpdateHotMetaLeadMutation();
@@ -737,8 +740,32 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
       savingId,
       savedSet,
       onSave: handleSave,
+      theme,
     }),
-    [canEdit, markDirty, dirtySet, savingId, savedSet, handleSave],
+    [canEdit, markDirty, dirtySet, savingId, savedSet, handleSave, theme],
+  );
+
+  // Column ids whose cells are interactive (inline-edit widgets, popovers, or the Save action).
+  // A click on one of these should keep its own behaviour, not open the row-detail modal.
+  const INTERACTIVE_COLS = useMemo(
+    () => new Set([
+      'how_contacted', 'response', 'client_registered', 'client_deposited',
+      'call_rating', 'recording_link', 'raw_data', 'call_summary', '__action',
+    ]),
+    [],
+  );
+
+  // Open the detail modal on a row click, but only from a non-interactive cell (and never from a
+  // click that lands on an actual control), so inline editing keeps working.
+  const handleCellClicked = useCallback(
+    (e) => {
+      if (!onRowClick) return;
+      const colId = e.column?.getColId?.() ?? '';
+      if (INTERACTIVE_COLS.has(colId) || colId.startsWith('cf__')) return;
+      if (e.event?.target?.closest?.('button, input, select, textarea, a, [role="button"]')) return;
+      onRowClick(e.data);
+    },
+    [onRowClick, INTERACTIVE_COLS],
   );
 
   const columnDefs = useMemo(() => {
@@ -966,27 +993,9 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
     [],
   );
 
-  const agTheme = useMemo(
-    () =>
-      themeQuartz.withParams({
-        backgroundColor: 'transparent',
-        headerBackgroundColor: 'hsl(228 49% 15% / 0.85)',
-        headerTextColor: 'hsl(220 15% 65%)',
-        foregroundColor: 'hsl(220 40% 98%)',
-        borderColor: 'hsl(220 49% 22% / 0.6)',
-        rowHoverColor: 'hsl(228 49% 15% / 0.5)',
-        oddRowBackgroundColor: 'hsl(229 56% 13% / 0.3)',
-        selectedRowBackgroundColor: 'hsl(220 100% 59% / 0.1)',
-        menuBackgroundColor: 'hsl(228 49% 12%)',
-        dialogBackgroundColor: 'hsl(228 49% 12%)',
-        headerHeight: 40,
-        floatingFiltersHeight: 36,
-        rowHeight: 40,
-        wrapperBorderRadius: 0,
-        fontFamily: 'Inter, sans-serif',
-      }),
-    [],
-  );
+  // Light/dark AG-Grid theme, shared with the manager-view grids (agThemeDark mirrors the previous
+  // inline dark theme; agThemeLight gives the navy-header + white-rows spreadsheet look).
+  const agTheme = useMemo(() => gridTheme(theme), [theme]);
 
   const getRowId = useCallback(
     (p) =>
@@ -1006,7 +1015,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
   );
 
   return (
-    <div className="h-[calc(100vh-10rem)] min-h-[840px]">
+    <div className="h-[calc(100vh-10rem)] min-h-[840px] [&_.ag-row]:cursor-pointer">
       <AgGridReact
         ref={gridRef}
         rowData={rows}
@@ -1016,6 +1025,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         context={context}
         getRowId={getRowId}
         rowClassRules={rowClassRules}
+        onCellClicked={handleCellClicked}
         suppressCellFocus
         suppressRowClickSelection
         enableCellTextSelection

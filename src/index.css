@@ -471,19 +471,22 @@ select option:focus {
   color: hsl(var(--primary-foreground)) !important;
 }
 
-/* ───────── Manager View — page-scoped theming ─────────
-   The app is dark-only (tokens on :root). The Manager View page wraps its content in
-   `.mv-scope[data-theme="light|dark"]`; overriding tokens here re-themes every descendant that
-   styles via hsl(var(--token)) — no component edits needed. Page-only header-bar tokens
-   (--mv-head/-fg/-accent) give the "navy header + teal accent" spreadsheet look. */
-.mv-scope {
+/* ───────── Page-scoped theming (Manager View + Reporting) ─────────
+   The app is dark-only (tokens on :root). These pages wrap their content in
+   `.mv-scope`/`.rv-scope` with `data-theme="light|dark"`; overriding tokens here re-themes every
+   descendant that styles via hsl(var(--token)) — no component edits needed. Page-only header-bar
+   tokens (--mv-head/-fg/-accent) give the "navy header + teal accent" spreadsheet look. The
+   reporting scope (`.rv-scope`) reuses the same definitions (portal popovers also carry it). */
+.mv-scope,
+.rv-scope {
   /* dark defaults — the rest of the tokens inherit the app :root (dark) */
   --mv-head: 228 49% 15%;      /* secondary */
   --mv-head-fg: 220 40% 98%;   /* foreground */
   --mv-accent: 158 100% 41%;   /* status-active */
 }
 
-.mv-scope[data-theme="light"] {
+.mv-scope[data-theme="light"],
+.rv-scope[data-theme="light"] {
   color-scheme: light;
   --background: 210 40% 97%;
   --foreground: 222 44% 14%;
@@ -516,7 +519,10 @@ select option:focus {
 /* Native form chrome follows the page theme (overrides the global dark color-scheme). */
 .mv-scope[data-theme="light"] select,
 .mv-scope[data-theme="light"] input,
-.mv-scope[data-theme="light"] textarea {
+.mv-scope[data-theme="light"] textarea,
+.rv-scope[data-theme="light"] select,
+.rv-scope[data-theme="light"] input,
+.rv-scope[data-theme="light"] textarea {
   color-scheme: light;
 }
 

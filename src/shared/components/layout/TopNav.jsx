@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-import { clearUser, selectCampaingName, selectIsAdmin, selectRoleLabel, selectUser, selectUserName } from "@/features/auth/slices/authSlice";
+import { clearUser, selectCampaingName, selectIsAdmin, selectRoleLabel, selectUser, selectUserName, selectIsWhatsappAdmin } from "@/features/auth/slices/authSlice";
 import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState } from "@/features/calls/slices/callSlice";
 import { selectDateRange, setDateRange } from "@/features/dashboard/slices/dateFilterSlice";
@@ -51,9 +51,10 @@ export default function TopNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
-  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads","/agent-mail","/manager-view"].includes(location.pathname);
+  const hideDatePicker = ["/leads-upload", "/email-templates","/campaign-leads","/agent-mail","/manager-view","/whatsapp-admin"].includes(location.pathname);
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
+  const isWhatsappAdmin = useSelector(selectIsWhatsappAdmin);
   const roleLabel = useSelector(selectRoleLabel);
   const campaignName = useSelector(selectCampaingName);
   const userName = useSelector(selectUserName);
@@ -78,10 +79,12 @@ export default function TopNav() {
     dispatch(setDateRange({ from: toYMD(s), to: toYMD(e) }));
     dispatch(dashboardApi.util.invalidateTags(["DATE_FILTERED"]));
   }, [dispatch]);
-  const navItems = useMemo(
-    () => (isAdmin ? adminNavItems : agentNavItems),
-    [isAdmin]
-  );
+  const navItems = useMemo(() => {
+    const base = isAdmin ? adminNavItems : agentNavItems;
+    return isWhatsappAdmin
+      ? [...base, { name: "WhatsApp", path: "/whatsapp-admin" }]
+      : base;
+  }, [isAdmin, isWhatsappAdmin]);
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);

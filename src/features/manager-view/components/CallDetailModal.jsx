@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { X, Download, Loader2, MessageSquare, Star, Headphones, Gauge, Megaphone, UserCheck, Database } from 'lucide-react';
+import { X, Download, Loader2, MessageSquare, MessageCircle, Star, Headphones, Gauge, Megaphone, UserCheck, Database } from 'lucide-react';
 
 import { useDownloadRecordingMutation } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import RecordingPlayer from '@/features/reporting/components/RecordingPlayer';
 import BoolBadge from '@/features/reporting/components/BoolBadge';
-import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import WhatsAppThread from '@/features/whatsapp/components/WhatsAppThread';
+import { selectMaskPii, selectUser } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { dash, fmtDateTime, fmtDuration, toContactArray } from '../utils';
 
@@ -93,6 +94,7 @@ function KeyValueDump({ title, obj }) {
 export default function CallDetailModal({ call, onClose }) {
   const { error: toastError } = useToast();
   const maskPii = useSelector(selectMaskPii);
+  const currentUser = useSelector(selectUser);
   const [triggerDownload, { isLoading: downloading }] = useDownloadRecordingMutation();
 
   // Esc to close + lock background scroll while open.
@@ -110,6 +112,9 @@ export default function CallDetailModal({ call, onClose }) {
   if (!call) return null;
 
   const contacts = toContactArray(call.how_contacted);
+  // WhatsApp sender = the logged-in user (best-effort id/name).
+  const agentName = currentUser?.full_name || currentUser?.user || null;
+  const agentId = currentUser?.agent_id ?? currentUser?.user_id ?? currentUser?.user ?? null;
 
   const handleDownload = async () => {
     if (!call.recording_link || downloading) return;
@@ -240,6 +245,11 @@ export default function CallDetailModal({ call, onClose }) {
                 </div>
               </div>
             )}
+          </Group>
+
+          {/* WhatsApp */}
+          <Group title="WhatsApp" icon={MessageCircle}>
+            <WhatsAppThread clientPhone={call.phone} agentName={agentName} agentId={agentId} />
           </Group>
 
           {/* Summary */}
