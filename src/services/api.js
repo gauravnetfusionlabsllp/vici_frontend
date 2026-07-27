@@ -14,9 +14,6 @@ export const dashboardApi = createApi({
     'EmailAttachments',
     'CampaignLeads',
     'HotMetaLeads',
-    'CustomColumns',
-    'ManagerView',
-    'WhatsappMessages',
   ],
   endpoints: () => ({}),
 });
