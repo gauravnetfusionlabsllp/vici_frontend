@@ -7,6 +7,7 @@ export const {
   useSendWhatsappMessageMutation,
   useUpdateWhatsappMessageMutation,
   useSendToWhatsappMutation,
+  useMarkWhatsappSeenMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getWhatsappMessages: builder.query({
@@ -47,7 +48,22 @@ export const {
     // endpoint — goes through the shared client so it carries the Bearer token. No cache tags
     // (delivery doesn't change the messages list; the PATCH above marks the record sent).
     sendToWhatsapp: builder.mutation({
-      query: ({ to, message }) => ({ url: '/send', method: 'POST', body: { to, message } }),
+      // Pass the whole body so callers can add media_url / media_base64 /
+      // mimetype / filename for file sends (backend /send auto-routes media).
+      query: (body) => ({ url: '/send', method: 'POST', body }),
+    }),
+
+    // Mark a phone's inbound messages as seen (clears the unread badge).
+    markWhatsappSeen: builder.mutation({
+      query: (clientPhone) => ({
+        url: '/whatsapp/messages/seen',
+        method: 'POST',
+        params: { client_phone: clientPhone },
+      }),
+      invalidatesTags: (result, error, clientPhone) => [
+        { type: 'WhatsappMessages', id: clientPhone || 'ALL' },
+        { type: 'WhatsappMessages', id: 'LIST' },
+      ],
     }),
   }),
 });

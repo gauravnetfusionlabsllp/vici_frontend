@@ -1,7 +1,18 @@
-import { useMemo, useRef, useState } from 'react';
-import { Send, Save, Loader2, AlertTriangle, MessageCircle } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Send, Save, Loader2, AlertTriangle, MessageCircle, Paperclip, PowerOff } from 'lucide-react';
+import { useWaConnected } from '../useWaConnected';
 
-import { useGetWhatsappMessagesQuery, useSendWhatsappMessageMutation, useUpdateWhatsappMessageMutation, useSendToWhatsappMutation } from '@/services';
+// Read a browser File into base64 (without the data: URL prefix).
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+import { useGetWhatsappMessagesQuery, useSendWhatsappMessageMutation, useUpdateWhatsappMessageMutation, useSendToWhatsappMutation, useMarkWhatsappSeenMutation } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { SkeletonList } from '@/shared/components/ui';
 import {
@@ -20,6 +31,8 @@ const inputCls =
   'w-full rounded-md border border-input bg-input/40 px-3 py-2 text-xs text-foreground ' +
   'placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-smooth resize-none';
 
+const API_BASE = import.meta.env.VITE_BASE_URL;
+
 // One chat bubble, aligned + tinted by the message direction. In admin mode a pending outbound
 // message gets a "Send to WhatsApp" action (opens wa.me, then marks the record sent).
 function MessageBubble({ row, adminMode, dispatching, onDispatch }) {
@@ -30,6 +43,12 @@ function MessageBubble({ row, adminMode, dispatching, onDispatch }) {
   const status = messageStatus(msg);
   const canDispatch = adminMode && outbound && isPending(msg);
 
+  // Attachment: prefer a direct url; else our media endpoint that serves the
+  // stored bytes (works as a plain <img>/download link — endpoint is open).
+  const media = msg.media;
+  const isImage = String(media?.mimetype || '').startsWith('image/');
+  const mediaSrc = media?.url || (media ? `${API_BASE}/whatsapp/messages/${row.id}/media` : null);
+
   return (
     <div className={`flex ${outbound ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -39,17 +58,29 @@ function MessageBubble({ row, adminMode, dispatching, onDispatch }) {
             : 'bg-secondary/40 border-border rounded-bl-sm'
         }`}
       >
-        <p className="text-xs text-foreground/90 whitespace-pre-wrap break-words">{body || '—'}</p>
-        {msg.media_url && (
-          <a
-            href={msg.media_url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 inline-block text-[11px] text-primary underline underline-offset-2 break-all"
-          >
-            {msg.media_url}
+        {body && <p className="text-xs text-foreground/90 whitespace-pre-wrap break-words">{body}</p>}
+
+        {mediaSrc && isImage && (
+          <a href={mediaSrc} target="_blank" rel="noreferrer">
+            <img
+              src={mediaSrc}
+              alt={media?.filename || 'image'}
+              className="mt-1 max-h-52 rounded-md border border-border/40 object-contain"
+            />
           </a>
         )}
+        {mediaSrc && !isImage && (
+          <a
+            href={media?.url || `${mediaSrc}?download=1`}
+            target="_blank"
+            rel="noreferrer"
+            download={media?.filename || undefined}
+            className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary underline underline-offset-2 break-all"
+          >
+            📎 {media?.filename || 'Download file'}
+          </a>
+        )}
+        {!body && !mediaSrc && <p className="text-xs text-foreground/90">—</p>}
         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
           {row.agent_name && <span className="truncate max-w-[120px]">{row.agent_name}</span>}
           {row.agent_name && when && <span>·</span>}
@@ -85,6 +116,7 @@ function MessageBubble({ row, adminMode, dispatching, onDispatch }) {
 // `fill` grows the thread to fill its container height.
 export default function WhatsAppThread({ clientPhone, agentName, agentId, fill = false, adminMode = false }) {
   const { error: toastError } = useToast();
+  const { connected: waConnected } = useWaConnected();
   const phone = (clientPhone ?? '').toString().trim();
   const hasPhone = phone.length > 0;
 
@@ -93,11 +125,22 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
     isLoading,
     isError,
     error,
-  } = useGetWhatsappMessagesQuery(phone, { skip: !hasPhone });
+  } = useGetWhatsappMessagesQuery(phone, {
+    skip: !hasPhone || !waConnected,
+    pollingInterval: 5000,
+  });
 
   const [saveMessage] = useSendWhatsappMessageMutation();
   const [updateMessage] = useUpdateWhatsappMessageMutation();
   const [sendToWhatsapp] = useSendToWhatsappMutation();
+  const [markSeen] = useMarkWhatsappSeenMutation();
+
+  // Opening a conversation marks its inbound messages as seen (clears the
+  // unread badge in the admin console). Runs whenever the phone changes.
+  useEffect(() => {
+    if (hasPhone && waConnected) markSeen(phone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone, hasPhone, waConnected]);
   const [draft, setDraft] = useState('');
   const [fieldError, setFieldError] = useState(null);
   const [dispatchingId, setDispatchingId] = useState(null);
@@ -138,11 +181,12 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
       if (!adminMode) {
         const id = created?.id ?? created?.data?.id;
         try {
-          await sendToWhatsapp({ to: phone, message: body }).unwrap();
+          const sendRes = await sendToWhatsapp({ to: phone, message: body }).unwrap();
           if (id != null) {
             await updateMessage({
               id,
-              message: markMessageSent(created?.message ?? built),
+              // Keep the WhatsApp message id so delivery/read acks can match this row.
+              message: { ...markMessageSent(created?.message ?? built), wa_message_id: sendRes?.result?.messageId },
               clientPhone: phone,
             }).unwrap();
           }
@@ -179,6 +223,72 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
     }
   };
 
+  // Attach + send a file (image / pdf / video / audio / any). Stores a record
+  // then delivers via /send with base64 media (agent mode only, like text).
+  const fileInputRef = useRef(null);
+  const onFileChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!hasPhone) {
+      setFieldError('No phone number on this lead.');
+      return;
+    }
+    if (working) return;
+
+    setWorking(true);
+    setFieldError(null);
+    try {
+      const b64 = await fileToBase64(file);
+      const caption = draft.trim();
+      const built = {
+        ...buildOutboundMessage(caption || `📎 ${file.name}`),
+        filename: file.name,
+        mimetype: file.type || undefined,
+        kind: 'media',
+        // Keep the bytes so the sent image/file is viewable/downloadable in the
+        // thread (stripped from the list response, served by the media endpoint).
+        media: { mimetype: file.type || undefined, filename: file.name, data: b64 },
+      };
+      const created = await saveMessage({
+        agent_name: agentName ?? null,
+        agent_id: agentId ?? null,
+        client_phone: phone,
+        message: built,
+      }).unwrap();
+      setDraft('');
+      requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      });
+
+      if (!adminMode) {
+        const id = created?.id ?? created?.data?.id;
+        try {
+          const sendRes = await sendToWhatsapp({
+            to: phone,
+            message: caption,
+            media_base64: b64,
+            mimetype: file.type || undefined,
+            filename: file.name,
+          }).unwrap();
+          if (id != null) {
+            await updateMessage({
+              id,
+              message: { ...markMessageSent(created?.message ?? built), wa_message_id: sendRes?.result?.messageId },
+              clientPhone: phone,
+            }).unwrap();
+          }
+        } catch (sendErr) {
+          toastError(`Saved, but sending file failed: ${parseApiError(sendErr).message}`);
+        }
+      }
+    } catch (e) {
+      toastError(`Could not send file: ${parseApiError(e).message}`);
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -195,7 +305,12 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
           fill ? 'flex-1 min-h-0' : 'max-h-64'
         }`}
       >
-        {!hasPhone ? (
+        {!waConnected ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 text-muted-foreground">
+            <PowerOff className="w-5 h-5" />
+            <p className="text-xs">WhatsApp is logged out — reconnect on the Sessions page.</p>
+          </div>
+        ) : !hasPhone ? (
           <div className="py-6 text-center text-xs text-muted-foreground">
             No phone number on this lead.
           </div>
@@ -229,14 +344,27 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
       {/* Composer */}
       <div className={`space-y-1 ${fill ? 'shrink-0' : ''}`}>
         <div className="flex items-end gap-2">
+          {/* Attach a file (image / pdf / video / audio / any) */}
+          <input ref={fileInputRef} type="file" className="hidden" onChange={onFileChosen} />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!hasPhone || working || !waConnected}
+            title="Attach a file"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input bg-input/40 text-muted-foreground hover:text-foreground hover:bg-input/70 transition-smooth disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             rows={2}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            disabled={!hasPhone || working}
+            disabled={!hasPhone || working || !waConnected}
             placeholder={
-              hasPhone
+              !waConnected
+                ? 'WhatsApp is logged out'
+                : hasPhone
                 ? `Type a message… (Enter to ${adminMode ? 'save' : 'send'}, Shift+Enter for newline)`
                 : 'No phone number on this lead'
             }
@@ -245,7 +373,7 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
           <button
             type="button"
             onClick={handleSave}
-            disabled={!hasPhone || working || !draft.trim()}
+            disabled={!hasPhone || working || !draft.trim() || !waConnected}
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-primary/50 bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-smooth active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none shrink-0"
             title={adminMode ? 'Save message (queued — dispatch it via the Send to WhatsApp button)' : 'Send this message on WhatsApp'}
           >

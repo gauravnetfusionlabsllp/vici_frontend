@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { MessageCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { MessageCircle, AlertTriangle, Info, Loader2, PowerOff } from 'lucide-react';
+import { useWaConnected } from '@/features/whatsapp/useWaConnected';
 
 import { selectUser } from '@/features/auth/slices/authSlice';
 import { useGetWhatsappMessagesQuery, useGetHotMetaLeadsQuery, useGetMetaLeadByPhoneQuery } from '@/services';
@@ -33,11 +34,15 @@ function groupConversations(messages) {
   for (const m of messages) {
     const phone = (m.client_phone ?? '').toString().trim();
     if (!phone) continue;
+    const msg = m.message || {};
+    // Unread = an inbound (client) message not yet marked seen.
+    const unread = String(msg.direction || '').toLowerCase() === 'inbound' && msg.seen !== true;
     const existing = map.get(phone);
     if (!existing) {
-      map.set(phone, { phone, lastBody: renderMessageBody(m.message), count: 1 });
+      map.set(phone, { phone, lastBody: renderMessageBody(msg), count: 1, unread: unread ? 1 : 0 });
     } else {
       existing.count += 1;
+      if (unread) existing.unread += 1;
     }
   }
   return Array.from(map.values());
@@ -48,7 +53,11 @@ export default function WhatsAppAdminPage() {
   const agentName = user?.full_name || user?.user || null;
   const agentId = user?.agent_id ?? user?.user_id ?? user?.user ?? null;
 
-  const { data: messages = [], isLoading, isError, error } = useGetWhatsappMessagesQuery();
+  const { connected: waConnected } = useWaConnected();
+  const { data: messages = [], isLoading, isError, error } = useGetWhatsappMessagesQuery(undefined, {
+    pollingInterval: 5000,
+    skip: !waConnected, // don't even fetch history while WhatsApp is logged out
+  });
   // Rich lead lookup: the whole hot-meta-leads feed (RTK-cached; reused from the reporting page).
   const { data: leads = [], isFetching: leadsFetching } = useGetHotMetaLeadsQuery();
 
@@ -110,7 +119,15 @@ export default function WhatsAppAdminPage() {
 
       {/* Two-pane console */}
       <div className="rounded-xl border border-border bg-card/60 overflow-hidden transition-smooth">
-        {isError ? (
+        {!waConnected ? (
+          <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground animate-fade-in">
+            <PowerOff className="w-8 h-8" />
+            <p className="text-sm font-medium text-foreground">WhatsApp is logged out</p>
+            <p className="max-w-sm text-center text-xs">
+              Conversations are hidden until a session is connected. Reconnect on the WhatsApp Sessions page.
+            </p>
+          </div>
+        ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-16 text-destructive animate-fade-in">
             <AlertTriangle className="w-8 h-8" />
             <p className="text-sm">{parseApiError(error).message}</p>
@@ -141,7 +158,7 @@ export default function WhatsAppAdminPage() {
                 <>
                   <div className="text-xs font-mono text-foreground/80 mb-2 shrink-0">{selected}</div>
                   <div className="flex-1 min-h-0">
-                    <WhatsAppThread clientPhone={selected} agentName={agentName} agentId={agentId} fill adminMode />
+                    <WhatsAppThread clientPhone={selected} agentName={agentName} agentId={agentId} fill />
                   </div>
                 </>
               ) : (

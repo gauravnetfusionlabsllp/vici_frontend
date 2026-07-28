@@ -23,6 +23,7 @@ const adminNavItems = [
   { name: "Lead Router",    path: "/campaign-leads" },
   { name: "Email Templates",  path: "/email-templates" },
   { name: "Lead Management",   path: "/lead-management" },
+  { name: "WhatsApp Sessions", path: "/whatsapp-sessions" },
   { name: "Reporting",        path: "/reporting" },
 ];
 function toYMD(date) {

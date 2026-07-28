@@ -73,10 +73,16 @@ export default function ConversationList({ conversations, selected, onSelect, se
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-mono text-foreground truncate">{c.phone}</span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{c.count}</span>
+                  <span className={`text-xs font-mono truncate ${c.unread > 0 ? 'text-foreground font-semibold' : 'text-foreground'}`}>{c.phone}</span>
+                  {c.unread > 0 ? (
+                    <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                      {c.unread}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground shrink-0">{c.count}</span>
+                  )}
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.lastBody || '—'}</p>
+                <p className={`text-[11px] truncate mt-0.5 ${c.unread > 0 ? 'text-foreground/80' : 'text-muted-foreground'}`}>{c.lastBody || '—'}</p>
               </button>
             );
           })

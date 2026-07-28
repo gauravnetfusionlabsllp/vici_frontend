@@ -36,6 +36,10 @@ export function whatsappSendUrl(phone, body) {
 // Token-based tone for a status label (used to tint the bubble status tag).
 export function statusTone(status) {
   switch (String(status || '').toLowerCase()) {
+    case 'read':
+      return 'text-sky-400 bg-sky-500/12';                 // seen (✓✓ blue)
+    case 'delivered':
+      return 'text-emerald-400 bg-emerald-500/12';         // delivered (✓✓)
     case 'sent':
       return 'text-[hsl(var(--status-active))] bg-[hsl(var(--status-active)/0.12)]';
     case 'pending':
@@ -88,7 +92,8 @@ export function parseApiError(e) {
 export function messageStatus(message) {
   const raw = message && typeof message === 'object' ? message.status : null;
   if (raw) {
-    const s = String(raw);
+    const s = String(raw).toLowerCase();
+    if (s === 'read') return 'Seen';          // client has read it
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
   const dir = String(message?.direction || '').toLowerCase();

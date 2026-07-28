@@ -20,6 +20,10 @@ const CallPage           = lazy(() => import('@/features/calls/CallPage'));
 const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPage'));
 const ReportingPage      = lazy(() => import('@/features/reporting/ReportingPage'));
 const LeadManagementPage = lazy(() => import('@/features/lead-management/LeadManagementPage'));
+const WhatsAppAdminPage  = lazy(() => import('@/features/whatsapp-admin/WhatsAppAdminPage'));
+const WaApiExplorerPage  = lazy(() => import('@/features/wa-api/WaApiExplorerPage'));
+const WhatsAppLoginPage  = lazy(() => import('@/features/whatsapp-login/WhatsAppLoginPage'));
+const WhatsAppSessionsPage = lazy(() => import('@/features/whatsapp-sessions/WhatsAppSessionsPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -42,6 +46,8 @@ function App() {
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/campaign-leads"  element={<CampaignLeadsPage />} />
                 <Route path="/lead-management" element={<LeadManagementPage />} />
+                <Route path="/whatsapp-login"    element={<WhatsAppLoginPage />} />
+                <Route path="/whatsapp-sessions" element={<WhatsAppSessionsPage />} />
               </Route>
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>
@@ -59,6 +65,7 @@ function App() {
                 <Route path="/agent-mail"      element={<AgentMailPage />} />
                 <Route path="/reporting"       element={<ReportingPage />} />
                 <Route path="/lead-management" element={<LeadManagementPage />} />
+                <Route path="/wa-api"          element={<WaApiExplorerPage />} />
               </Route>
 
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
