@@ -1,11 +1,23 @@
-import TopNav from "@/shared/components/layout/TopNav";
 import { Toaster } from "react-hot-toast";
+import { useSelector } from "react-redux";
+
+import { selectUser } from "@/features/auth/slices/authSlice";
 import WhatsappNotifier from "@/features/whatsapp/WhatsappNotifier";
+import Sidebar from "@/shared/components/layout/Sidebar";
+import TopBar from "@/shared/components/layout/TopBar";
+import { useSidebarCollapsed } from "@/shared/components/layout/useSidebarCollapsed";
 
 export function Layout({ children }) {
+  const user = useSelector(selectUser);
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed();
+
+  // Mirrors the fixed sidebar's width. Both classes are literals so Tailwind
+  // emits them; the sidebar is absent (and the padding zero) when signed out.
+  const contentOffset = !user ? "" : collapsed ? "md:pl-[4.5rem]" : "md:pl-64";
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <TopNav />
+      {user && <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />}
       <WhatsappNotifier />
       <Toaster
         position="bottom-right"
@@ -36,9 +48,11 @@ export function Layout({ children }) {
           },
         }}
       />
-      <main className="mx-2 2xl:mx-auto max-w-[1440px] 2xl:max-w-[1600px] min-h-full py-4">
-        {children}
-      </main>
+
+      <div className={`transition-[padding] duration-200 ${contentOffset}`}>
+        <TopBar />
+        <main className="min-h-full px-4 py-4">{children}</main>
+      </div>
     </div>
   );
 }

@@ -42,7 +42,7 @@ Path alias: `@/*` → `src/*` (configured in `vite.config.js`).
 ```
 src/app/
 ├── App.jsx              Provider + BrowserRouter + Layout + all route definitions
-├── Layout.jsx           Renders <TopNav> + <Toaster> around page content
+├── Layout.jsx           Renders <Sidebar> + <TopBar> + <Toaster> around page content; owns sidebar collapse state
 ├── store.js             configureStore — slice reducers from features + RTK Query middleware
 └── routes/
     ├── PrivateRoute.jsx Auth + role guard (allowedAdmin prop)
@@ -63,6 +63,8 @@ src/features/auth/
 ├── UnauthorizedPage.jsx         403 page
 ├── components/
 │   └── SessionPopup.jsx         Session-expiry modal (mounted globally in App.jsx)
+├── hooks/
+│   └── useLogout.js             closePopup + clearUser + redirect to /login
 └── slices/
     ├── authSlice.js             user, isAdmin, campaign, username
     └── sessionSlice.js          Session expiry state (drives SessionPopup)
@@ -101,6 +103,8 @@ src/features/calls/
 │   ├── CallbackListPanel.jsx     Scheduled callbacks list — callback time + dial button
 │   ├── AgentTimelineChart.jsx    ApexCharts range bar — agent active/break sessions today
 │   └── CallDispositionPopup.jsx  Post-call modal — status picker, callback datetime, SMS/WhatsApp
+├── hooks/
+│   └── useAutoDial.js            Auto-dial countdown + dial-next action (mount ONCE — TopBar does)
 └── slices/
     ├── callSlice.js              callState FSM, showDispo, isCallbackDial
     └── dialSlice.js              currentLead, isPaused, autoDialTime, formNameFilter
@@ -195,7 +199,15 @@ src/shared/
 │   ├── ConfirmDeletePopup.jsx    Generic delete confirmation modal (used by leads + email-templates)
 │   ├── TotalDialsToday.jsx       KPI strip — used by Dashboard, CallPage, SelectivePage
 │   └── layout/
-│       ├── TopNav.jsx            Sticky navbar — date picker, dial-next, auth info, nav links
+│       ├── Sidebar.jsx           Desktop left nav — brand, grouped links, user card, collapse toggle
+│       ├── TopBar.jsx            Sticky slim bar — page title, date range, dial-next, bell, clock
+│       ├── NavList.jsx           Grouped nav rendering (shared by Sidebar + MobileDrawer)
+│       ├── MobileDrawer.jsx      Off-canvas nav below `md`
+│       ├── UserCard.jsx          Signed-in identity + logout
+│       ├── DateRangePicker.jsx   Global From/To filter → dateFilterSlice + DATE_FILTERED invalidation
+│       ├── DialNextButton.jsx    Agent dial control (presentational; state from useAutoDial)
+│       ├── navItems.js           Nav config per role + date-picker-hidden paths + page-title lookup
+│       ├── useSidebarCollapsed.js  Collapse state persisted in localStorage
 │       └── PageContainer.jsx     Max-width wrapper (currently unused, available)
 ├── context/
 │   └── VicidialPopupContext.jsx  openPopup/closePopup for the VICIdial popup window

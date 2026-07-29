@@ -20,6 +20,7 @@ const CallPage           = lazy(() => import('@/features/calls/CallPage'));
 const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPage'));
 const ReportingPage      = lazy(() => import('@/features/reporting/ReportingPage'));
 const LeadManagementPage = lazy(() => import('@/features/lead-management/LeadManagementPage'));
+const ManagerViewPage    = lazy(() => import('@/features/manager-view/ManagerViewPage'));
 const WhatsAppAdminPage  = lazy(() => import('@/features/whatsapp-admin/WhatsAppAdminPage'));
 const WaApiExplorerPage  = lazy(() => import('@/features/wa-api/WaApiExplorerPage'));
 const WhatsAppLoginPage  = lazy(() => import('@/features/whatsapp-login/WhatsAppLoginPage'));
@@ -46,6 +47,7 @@ function App() {
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/campaign-leads"  element={<CampaignLeadsPage />} />
                 <Route path="/lead-management" element={<LeadManagementPage />} />
+                <Route path="/manager-view"    element={<ManagerViewPage />} />
                 <Route path="/whatsapp-login"    element={<WhatsAppLoginPage />} />
                 <Route path="/whatsapp-sessions" element={<WhatsAppSessionsPage />} />
               </Route>
