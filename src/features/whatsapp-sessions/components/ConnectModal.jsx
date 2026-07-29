@@ -91,7 +91,7 @@ export default function ConnectModal({ sessionId, onClose }) {
   useEffect(() => {
     if (connected || method !== 'qr') { setQr(null); return; }
     loadQr();
-    const t = setInterval(loadQr, 4000);
+    const t = setInterval(loadQr, 8000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, connected, method]);

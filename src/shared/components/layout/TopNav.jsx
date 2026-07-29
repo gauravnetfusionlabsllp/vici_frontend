@@ -15,6 +15,7 @@ import { dashboardApi, useDialNextMutation } from "@/services";
 import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
 import { useToast } from "@/shared/hooks/useToast";
 import BrandMark from "@/shared/components/BrandMark";
+import NotificationBell from "@/features/whatsapp/NotificationBell";
 
 const adminNavItems = [
   { name: "Dashboard", path: "/" },
@@ -44,6 +45,7 @@ const agentNavItems = [
   { name: "Send Email", path: "/agent-mail" },
   { name: "Lead Management", path: "/lead-management" },
   { name: "Reporting", path: "/reporting" },
+  { name: "WhatsApp", path: "/whatsapp" },
 ];
 const HOT_METAL_CAMPAIGN = "HotMetaleads";
 export default function TopNav() {
@@ -260,6 +262,7 @@ export default function TopNav() {
         )}
 
         <div className="ml-auto flex items-center gap-4">
+          {user && <NotificationBell />}
           {user && (
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800/60 border border-slate-700">
               <User className="w-4 h-4 text-muted-foreground" />

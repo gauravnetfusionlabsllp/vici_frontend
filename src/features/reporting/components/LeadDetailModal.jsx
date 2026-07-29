@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { X, MessageCircle } from 'lucide-react';
+import { X, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { selectMaskPii, selectUser } from '@/features/auth/slices/authSlice';
 import { maskPhone } from '@/shared/lib/mask';
@@ -14,6 +14,7 @@ import LeadInfoPanel, { Group, Stars } from './LeadInfoPanel';
 export default function LeadDetailModal({ lead, onClose }) {
   const maskPii = useSelector(selectMaskPii);
   const currentUser = useSelector(selectUser);
+  const [showMore, setShowMore] = useState(false);
 
   // Esc to close + lock background scroll while open.
   useEffect(() => {
@@ -70,13 +71,26 @@ export default function LeadDetailModal({ lead, onClose }) {
           </div>
         </div>
 
-        {/* Body (scroll) — shared lead detail; WhatsApp thread sits in the panel's slot. */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-5">
-          <LeadInfoPanel lead={lead}>
-            <Group title="WhatsApp" icon={MessageCircle}>
-              <WhatsAppThread clientPhone={lead.phone} agentName={agentName} agentId={agentId} />
-            </Group>
-          </LeadInfoPanel>
+        {/* Body (scroll) — WhatsApp first; the rest is tucked behind "See more details". */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
+          <Group title="WhatsApp" icon={MessageCircle}>
+            <WhatsAppThread clientPhone={lead.phone} agentName={agentName} agentId={agentId} />
+          </Group>
+
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/40 py-2 text-xs font-medium text-foreground hover:bg-secondary transition-smooth"
+          >
+            {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showMore ? 'Hide details' : 'See more details'}
+          </button>
+
+          {showMore && (
+            <div className="space-y-5 animate-fade-in">
+              <LeadInfoPanel lead={lead} />
+            </div>
+          )}
         </div>
       </div>
     </div>

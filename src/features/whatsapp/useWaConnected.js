@@ -6,7 +6,7 @@ const CONNECTED = ['WORKING', 'CONNECTED', 'AUTHENTICATED', 'READY'];
 // history when the number is logged out (or the WA server is unreachable).
 export function useWaConnected() {
   const { data: sessions = [], isLoading, isError } = useGetWaSessionsQuery(undefined, {
-    pollingInterval: 8000,
+    pollingInterval: 15000,
   });
   const connected = sessions.some((s) =>
     CONNECTED.includes(String(s?.status || s?.state || '').toUpperCase()),

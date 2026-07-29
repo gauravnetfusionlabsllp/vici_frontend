@@ -16,7 +16,7 @@ import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { DISPOSITIONS } from '@/features/leads/constants';
 import { gridTheme } from '@/features/manager-view/components/gridConfig';
 import { CONTACT_OPTIONS } from '../constants';
-import { shortDate } from '../utils';
+import { ibLabel, shortDate } from '../utils';
 import BoolBadge from './BoolBadge';
 import RawDataCell from './RawDataCell';
 import ExpandableTextCell from './ExpandableTextCell';
@@ -314,6 +314,12 @@ function ViciLeadStatusCellRenderer(params) {
 
 function RawDataCellRenderer(params) {
   return <RawDataCell data={params.value} theme={params.context.theme} />;
+}
+
+// IB = the form answer to "which best describes you" is "I am an introducing broker".
+function IbCellRenderer(params) {
+  const v = params.value === 'Yes' ? true : params.value === 'No' ? false : null;
+  return <BoolBadge value={v} />;
 }
 
 function SummaryCellRenderer(params) {
@@ -865,6 +871,14 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         sortable: false,
         filter: false,
         cellRenderer: RawDataCellRenderer,
+      },
+      {
+        headerName: 'IB',
+        colId: 'is_ib',
+        width: 80,
+        headerTooltip: 'Introducing broker — from the "which best describes you" form answer',
+        valueGetter: (p) => ibLabel(p.data?.raw_data),
+        cellRenderer: IbCellRenderer,
       },
       {
         headerName: 'Agent Name',

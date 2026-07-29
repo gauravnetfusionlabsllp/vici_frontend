@@ -1,10 +1,12 @@
 import TopNav from "@/shared/components/layout/TopNav";
 import { Toaster } from "react-hot-toast";
+import WhatsappNotifier from "@/features/whatsapp/WhatsappNotifier";
 
 export function Layout({ children }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopNav />
+      <WhatsappNotifier />
       <Toaster
         position="bottom-right"
         reverseOrder={false}

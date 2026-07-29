@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { MessageCircle, AlertTriangle, Info, Loader2, PowerOff } from 'lucide-react';
 import { useWaConnected } from '@/features/whatsapp/useWaConnected';
 
-import { selectUser } from '@/features/auth/slices/authSlice';
+import { selectUser, selectIsAdmin } from '@/features/auth/slices/authSlice';
 import { useGetWhatsappMessagesQuery, useGetHotMetaLeadsQuery, useGetMetaLeadByPhoneQuery } from '@/services';
 import { SkeletonList } from '@/shared/components/ui';
 import WhatsAppThread from '@/features/whatsapp/components/WhatsAppThread';
@@ -50,11 +50,16 @@ function groupConversations(messages) {
 
 export default function WhatsAppAdminPage() {
   const user = useSelector(selectUser);
+  const isAdmin = useSelector(selectIsAdmin);
   const agentName = user?.full_name || user?.user || null;
   const agentId = user?.agent_id ?? user?.user_id ?? user?.user ?? null;
 
+  // Admins see every conversation; agents see only their own (phones they've
+  // messaged). Scoping is done server-side via the agent_id query param.
+  const messagesArg = isAdmin ? undefined : (agentId ? { agentId } : undefined);
+
   const { connected: waConnected } = useWaConnected();
-  const { data: messages = [], isLoading, isError, error } = useGetWhatsappMessagesQuery(undefined, {
+  const { data: messages = [], isLoading, isError, error } = useGetWhatsappMessagesQuery(messagesArg, {
     pollingInterval: 5000,
     skip: !waConnected, // don't even fetch history while WhatsApp is logged out
   });
@@ -106,7 +111,9 @@ export default function WhatsAppAdminPage() {
             </div>
             <div>
               <h1 className="text-base font-semibold text-foreground leading-none">WhatsApp</h1>
-              <p className="text-[11px] text-muted-foreground mt-0.5">All conversations — send and track messages</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {isAdmin ? 'All conversations' : 'Your conversations'} — send and track messages
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">

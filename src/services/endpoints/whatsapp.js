@@ -8,20 +8,32 @@ export const {
   useUpdateWhatsappMessageMutation,
   useSendToWhatsappMutation,
   useMarkWhatsappSeenMutation,
+  useGetUnreadInboundQuery,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getWhatsappMessages: builder.query({
-      // clientPhone optional: when provided, filter to that exact phone; otherwise return all.
-      query: (clientPhone) => ({
-        url: '/whatsapp/messages',
-        params: clientPhone ? { client_phone: clientPhone } : undefined,
-      }),
+      // Arg forms (all optional):
+      //   - a phone string           → filter to that exact conversation
+      //   - { clientPhone }          → same as above
+      //   - { agentId }              → scope to that agent's own conversations
+      //   - undefined                → the full feed (admin)
+      query: (arg) => {
+        const clientPhone = typeof arg === 'string' ? arg : arg?.clientPhone;
+        const agentId = typeof arg === 'object' && arg ? arg.agentId : undefined;
+        const params = {};
+        if (clientPhone) params.client_phone = clientPhone;
+        else if (agentId) params.agent_id = agentId;
+        return { url: '/whatsapp/messages', params: Object.keys(params).length ? params : undefined };
+      },
       // Contract returns a bare array (newest-first); stay defensive against a { data } envelope.
       transformResponse: (res) => (Array.isArray(res) ? res : res?.data ?? []),
-      providesTags: (result, error, clientPhone) => [
-        { type: 'WhatsappMessages', id: clientPhone || 'ALL' },
-        { type: 'WhatsappMessages', id: 'LIST' },
-      ],
+      providesTags: (result, error, arg) => {
+        const clientPhone = typeof arg === 'string' ? arg : arg?.clientPhone;
+        return [
+          { type: 'WhatsappMessages', id: clientPhone || 'ALL' },
+          { type: 'WhatsappMessages', id: 'LIST' },
+        ];
+      },
     }),
     sendWhatsappMessage: builder.mutation({
       query: (body) => ({ url: '/whatsapp/messages', method: 'POST', body }),
@@ -53,6 +65,17 @@ export const {
       query: (body) => ({ url: '/send', method: 'POST', body }),
     }),
 
+    // Unseen inbound replies for notifications (scoped to the agent's own
+    // conversations when agentId is passed).
+    getUnreadInbound: builder.query({
+      query: (agentId) => ({
+        url: '/whatsapp/unread-inbound',
+        params: agentId ? { agent_id: agentId } : undefined,
+      }),
+      transformResponse: (res) => res?.data ?? [],
+      providesTags: [{ type: 'WhatsappMessages', id: 'UNREAD' }],
+    }),
+
     // Mark a phone's inbound messages as seen (clears the unread badge).
     markWhatsappSeen: builder.mutation({
       query: (clientPhone) => ({
@@ -63,6 +86,7 @@ export const {
       invalidatesTags: (result, error, clientPhone) => [
         { type: 'WhatsappMessages', id: clientPhone || 'ALL' },
         { type: 'WhatsappMessages', id: 'LIST' },
+        { type: 'WhatsappMessages', id: 'UNREAD' },  // refresh the notification bell
       ],
     }),
   }),

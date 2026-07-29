@@ -66,6 +66,9 @@ function App() {
                 <Route path="/reporting"       element={<ReportingPage />} />
                 <Route path="/lead-management" element={<LeadManagementPage />} />
                 <Route path="/wa-api"          element={<WaApiExplorerPage />} />
+                {/* WhatsApp console — same component; scopes to the agent's own
+                    conversations for non-admins, full feed for admins. */}
+                <Route path="/whatsapp"        element={<WhatsAppAdminPage />} />
               </Route>
 
               <Route path="/unauthorized" element={<UnauthorizedPage />} />

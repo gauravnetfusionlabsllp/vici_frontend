@@ -24,9 +24,10 @@ export const {
       },
     }),
 
-    // Convenience query for the session picker -> GET /wa-proxy/sessions
+    // Session list via the CACHED backend endpoint (not the raw proxy) so
+    // frequent polling from many tabs doesn't trip open-wa's rate limiter (429).
     getWaSessions: builder.query({
-      query: () => '/wa-proxy/sessions',
+      query: () => '/wa/sessions',
       transformResponse: (res) =>
         Array.isArray(res) ? res : res?.data ?? res?.sessions ?? [],
     }),
