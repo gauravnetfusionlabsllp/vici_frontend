@@ -1,5 +1,7 @@
 import {
   BarChart3,
+  Bot,
+  CheckCheck,
   Gauge,
   Inbox,
   LayoutDashboard,
@@ -22,6 +24,8 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/campaign-leads",
   "/agent-mail",
   "/manager-view",
+  "/whatsapp-automation",
+  "/double-tick",
 ];
 
 /**
@@ -65,9 +69,11 @@ export function getNavGroups({ isAdmin, isWhatsappAdmin }) {
             icon: MessageCircle,
             children: [
               { name: "Sessions", path: "/whatsapp-sessions", icon: Smartphone },
+              { name: "Automation", path: "/whatsapp-automation", icon: Bot },
               ...whatsappConsole,
             ],
           },
+          { name: "DoubleTick", path: "/double-tick", icon: CheckCheck },
         ],
       },
       {

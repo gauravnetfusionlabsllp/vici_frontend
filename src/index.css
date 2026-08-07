@@ -179,6 +179,42 @@
 .dark-datepicker .react-datepicker__triangle {
   display: none;
 }
+
+/* ───────── Multi-month range popover (DoubleTick "Activity period") ─────────
+   react-datepicker lays months out with `float: left` and gives its children slot a
+   fixed narrow width, which made two months stack vertically and pushed the typed
+   From/To fields off-screen.
+
+   Grid rather than flex on purpose: the footer needs to span the full width, and a
+   percentage width inside a *wrapping flex* container is circular — the browser
+   resolves it by collapsing the popover back to one column. */
+.dt-datepicker .react-datepicker {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: start;
+}
+
+.dt-datepicker .react-datepicker__month-container {
+  float: none;
+}
+
+/* Screen-reader-only node; keep it out of the grid flow. */
+.dt-datepicker .react-datepicker__aria-live {
+  position: absolute;
+}
+
+.dt-datepicker .react-datepicker__children-container {
+  grid-column: 1 / -1;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .dt-datepicker .react-datepicker {
+    grid-template-columns: max-content;
+  }
+}
 /* ───────── Motion system ─────────
    Curves:
    - --ease-out   : Linear/Vercel-style decel; default for entrances
@@ -478,7 +514,8 @@ select option:focus {
    tokens (--mv-head/-fg/-accent) give the "navy header + teal accent" spreadsheet look. The
    reporting scope (`.rv-scope`) reuses the same definitions (portal popovers also carry it). */
 .mv-scope,
-.rv-scope {
+.rv-scope,
+.dt-scope {
   /* dark defaults — the rest of the tokens inherit the app :root (dark) */
   --mv-head: 228 49% 15%;      /* secondary */
   --mv-head-fg: 220 40% 98%;   /* foreground */
@@ -486,7 +523,8 @@ select option:focus {
 }
 
 .mv-scope[data-theme="light"],
-.rv-scope[data-theme="light"] {
+.rv-scope[data-theme="light"],
+.dt-scope[data-theme="light"] {
   color-scheme: light;
   --background: 210 40% 97%;
   --foreground: 222 44% 14%;
@@ -522,7 +560,10 @@ select option:focus {
 .mv-scope[data-theme="light"] textarea,
 .rv-scope[data-theme="light"] select,
 .rv-scope[data-theme="light"] input,
-.rv-scope[data-theme="light"] textarea {
+.rv-scope[data-theme="light"] textarea,
+.dt-scope[data-theme="light"] select,
+.dt-scope[data-theme="light"] input,
+.dt-scope[data-theme="light"] textarea {
   color-scheme: light;
 }
 

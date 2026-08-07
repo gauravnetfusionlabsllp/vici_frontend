@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
   MessageCircle, Plus, Search, RefreshCw, Loader2, QrCode,
-  Play, Square, Trash2, X,
+  Play, Square, Trash2, X, Send, Pin, PinOff,
 } from 'lucide-react';
-import { useGetWaSessionsQuery, useWaProxyMutation } from '@/services';
+import {
+  useGetWaSessionsQuery, useWaProxyMutation,
+  useGetWaActiveSessionQuery, useSetWaActiveSessionMutation,
+} from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import ConnectModal from './components/ConnectModal';
 
@@ -23,8 +26,27 @@ function StatusPill({ status }) {
 
 export default function WhatsAppSessionsPage() {
   const { data: sessions = [], isFetching, refetch, error } = useGetWaSessionsQuery(undefined, { pollingInterval: 5000 });
+  // Which session the backend is actually sending through (it fails over on its
+  // own when a number drops off — this just reflects the current choice).
+  const { data: routing, refetch: refetchRouting } = useGetWaActiveSessionQuery(undefined, { pollingInterval: 5000 });
+  const [setActiveSession, { isLoading: pinning }] = useSetWaActiveSessionMutation();
   const [waProxy, { isLoading: acting }] = useWaProxyMutation();
   const { success, error: toastError } = useToast();
+
+  const activeId = routing?.active || '';
+  const pinnedId = routing?.pinned || '';
+  const connectedCount = routing?.connected?.length ?? 0;
+
+  const togglePin = async (id) => {
+    const next = pinnedId === id ? null : id;
+    try {
+      await setActiveSession(next).unwrap();
+      success(next ? `Sending pinned to "${id}"` : 'Session pin cleared — automatic failover');
+      refetchRouting();
+    } catch (e) {
+      toastError(e?.data?.detail || 'Failed to change the sending session');
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -51,6 +73,7 @@ export default function WhatsAppSessionsPage() {
       await waProxy({ method: 'POST', path: `sessions/${id}/${action}` }).unwrap();
       success(`${action} requested`);
       refetch();
+      refetchRouting();
     } catch (e) {
       toastError(e?.data?.detail?.wa_error?.message || `Failed to ${action}`);
     }
@@ -62,6 +85,7 @@ export default function WhatsAppSessionsPage() {
       await waProxy({ method: 'DELETE', path: `sessions/${id}` }).unwrap();
       success('Session deleted');
       refetch();
+      refetchRouting();
     } catch (e) {
       toastError(e?.data?.detail?.wa_error?.message || 'Failed to delete');
     }
@@ -76,6 +100,7 @@ export default function WhatsAppSessionsPage() {
       setShowNew(false);
       setNewName('');
       refetch();
+      refetchRouting();
     } catch (e) {
       toastError(e?.data?.detail?.wa_error?.message || 'Failed to create session');
     }
@@ -124,6 +149,34 @@ export default function WhatsAppSessionsPage() {
         </button>
       </div>
 
+      {/* Sending / failover status. Connect several sessions — outbound picks a
+          connected one automatically and moves on if it drops. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs">
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <Send className="h-3.5 w-3.5 text-emerald-400" /> Sending through
+        </span>
+        {activeId ? (
+          <span className="font-mono text-[11px] text-foreground">{activeId}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+        {pinnedId ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+            <Pin className="h-3 w-3" /> pinned
+          </span>
+        ) : (
+          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+            automatic failover
+          </span>
+        )}
+        <span className="text-muted-foreground">
+          {connectedCount} connected{connectedCount > 1 ? ` · ${connectedCount - 1} standby` : ''}
+        </span>
+        {connectedCount === 0 && (
+          <span className="text-amber-400">No session connected — outbound messages will fail.</span>
+        )}
+      </div>
+
       {error && (
         <p className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error?.status === 502 || error?.data?.status === 502
@@ -152,15 +205,46 @@ export default function WhatsAppSessionsPage() {
             return (
               <div key={id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card/60 px-4 py-3">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-foreground">{s?.name || id}</span>
                     <StatusPill status={s?.status || s?.state} />
+                    {id === activeId && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                        <Send className="h-3 w-3" /> sending
+                      </span>
+                    )}
+                    {id === pinnedId && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                        <Pin className="h-3 w-3" /> pinned
+                      </span>
+                    )}
+                    {connected && id !== activeId && (
+                      <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                        standby
+                      </span>
+                    )}
                   </div>
                   <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
                     {id}{s?.phone ? ` · ${s.phone}` : ''}{s?.pushName ? ` · ${s.pushName}` : ''}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  {connected && (
+                    <button
+                      onClick={() => togglePin(id)}
+                      disabled={pinning}
+                      title={id === pinnedId
+                        ? 'Unpin — go back to automatic failover'
+                        : 'Pin: prefer this session for sending (still fails over if it drops)'}
+                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-smooth disabled:opacity-50 ${
+                        id === pinnedId
+                          ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                          : 'border-border bg-background/50 text-muted-foreground hover:bg-background hover:text-foreground'
+                      }`}
+                    >
+                      {id === pinnedId ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                    </button>
+                  )}
                   {!connected && (
                     <button onClick={() => setConnectId(id)} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[11px] text-primary hover:bg-primary/20 transition-smooth">
                       <QrCode className="h-3 w-3" /> Connect

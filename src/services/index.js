@@ -14,3 +14,5 @@ export * from './endpoints/leadManagement';
 export * from './endpoints/managerView';
 export * from './endpoints/whatsapp';
 export * from './endpoints/waProxy';
+export * from './endpoints/whatsappAutomation';
+export * from './endpoints/doubleTick';

@@ -8,6 +8,9 @@ export function buildOutboundMessage(body) {
     body: String(body ?? '').trim(),
     direction: 'outbound',
     status: 'pending',
+    // Distinguishes agent-composed messages from the ones the lead automation
+    // sends by itself (which are stamped 'auto' server-side).
+    send_type: 'manual',
     timestamp: new Date().toISOString(),
   };
 }

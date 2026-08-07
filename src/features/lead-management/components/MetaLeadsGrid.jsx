@@ -3,14 +3,25 @@ import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
-import { shortDate } from '@/features/reporting/utils';
+import { ibLabel, shortDate } from '@/features/reporting/utils';
 import RawDataCell from '@/features/reporting/components/RawDataCell';
+import BoolBadge from '@/features/reporting/components/BoolBadge';
 import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const RawFieldsCellRenderer = (p) => <RawDataCell data={p.value} />;
+
+// IB = the form answer names "introducing broker" (see isIntroducingBroker for the questions).
+// Mirrors the hot-leads grid: valueGetter keeps 'Yes'/'No'/'' so sort, filter and export work.
+const IbCellRenderer = (p) => (
+  <BoolBadge value={p.value === 'Yes' ? true : p.value === 'No' ? false : null} />
+);
+
+const AgentCellRenderer = (p) => (
+  <span className="text-xs text-foreground/80">{p.value || '—'}</span>
+);
 
 export default function MetaLeadsGrid({ rows }) {
   const gridRef = useRef(null);
@@ -113,6 +124,23 @@ export default function MetaLeadsGrid({ rows }) {
         sortable: false,
         filter: false,
         cellRenderer: RawFieldsCellRenderer,
+      },
+      {
+        headerName: 'IB',
+        colId: 'is_ib',
+        width: 80,
+        headerTooltip:
+          'Introducing broker — from the "which best describes you" / "which opportunity are you interested in" form answer',
+        valueGetter: (p) => ibLabel(p.data?.raw_fields),
+        cellClass: 'flex items-center',
+        cellRenderer: IbCellRenderer,
+      },
+      {
+        headerName: 'Agent Name',
+        colId: '__agent',
+        width: 140,
+        valueGetter: (p) => p.data?.agent_name || p.data?.called_by || '',
+        cellRenderer: AgentCellRenderer,
       },
     ],
     [maskPii],

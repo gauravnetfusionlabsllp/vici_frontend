@@ -316,7 +316,7 @@ function RawDataCellRenderer(params) {
   return <RawDataCell data={params.value} theme={params.context.theme} />;
 }
 
-// IB = the form answer to "which best describes you" is "I am an introducing broker".
+// IB = the form answer names "introducing broker" (see isIntroducingBroker for the questions).
 function IbCellRenderer(params) {
   const v = params.value === 'Yes' ? true : params.value === 'No' ? false : null;
   return <BoolBadge value={v} />;
@@ -876,7 +876,8 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         headerName: 'IB',
         colId: 'is_ib',
         width: 80,
-        headerTooltip: 'Introducing broker — from the "which best describes you" form answer',
+        headerTooltip:
+          'Introducing broker — from the "which best describes you" / "which opportunity are you interested in" form answer',
         valueGetter: (p) => ibLabel(p.data?.raw_data),
         cellRenderer: IbCellRenderer,
       },

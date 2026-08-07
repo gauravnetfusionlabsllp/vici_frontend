@@ -14,11 +14,21 @@ const DISPOSITION_LABEL = DISPOSITIONS.reduce((acc, d) => {
 export const dispositionLabel = (code) => (code ? DISPOSITION_LABEL[code] || code : null);
 
 // ────────────────────────── Introducing Broker (IB) ──────────────────────────
-// The "which best describes you" question lives in the Meta form payload (raw_data) under a
-// form-specific key, so match keys and answers by normalized substring rather than exact text.
+// The IB question lives in the Meta form payload (raw_data) under a form-specific key and is
+// worded differently per form ("which best describes you", "which opportunity are you interested
+// in"), so match keys and answers by normalized substring rather than exact text.
 const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const IB_QUESTION_KEYS = ['whichbestdescribes', 'whatbestdescribes', 'bestdescribesyou', 'describesyou'];
+const IB_QUESTION_KEYS = [
+  'whichbestdescribes',
+  'whatbestdescribes',
+  'bestdescribesyou',
+  'describesyou',
+  'opportunityareyouinterested',
+  'opportunityinterested',
+  'whichopportunity',
+];
+// Matches both "I am an introducing broker" and "introducing broker (ib) partnership".
 const IB_ANSWER = 'introducingbroker';
 
 function parseRaw(data) {
@@ -34,10 +44,11 @@ function parseRaw(data) {
 export function isIntroducingBroker(rawData) {
   const raw = parseRaw(rawData);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  // A form can carry more than one of these questions — any IB answer marks the lead as IB.
   for (const [k, v] of Object.entries(raw)) {
     if (!IB_QUESTION_KEYS.some((c) => norm(k).includes(c))) continue;
     const answer = Array.isArray(v) ? v.join(' ') : v;
-    return norm(answer).includes(IB_ANSWER);
+    if (norm(answer).includes(IB_ANSWER)) return true;
   }
   return false;
 }

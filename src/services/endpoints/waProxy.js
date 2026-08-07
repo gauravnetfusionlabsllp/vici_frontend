@@ -7,6 +7,8 @@ import { dashboardApi } from '../api';
 export const {
   useWaProxyMutation,
   useGetWaSessionsQuery,
+  useGetWaActiveSessionQuery,
+  useSetWaActiveSessionMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     // Call ANY open-wa endpoint. args: { method?, path, body?, params? }
@@ -30,6 +32,22 @@ export const {
       query: () => '/wa/sessions',
       transformResponse: (res) =>
         Array.isArray(res) ? res : res?.data ?? res?.sessions ?? [],
+    }),
+
+    // Which session outbound messages currently go through, plus the failover
+    // order. { active, pinned, connected[], candidates[], ... }
+    getWaActiveSession: builder.query({
+      query: () => '/wa/active-session',
+    }),
+
+    // Pin sending to one session; pass null/'' to go back to automatic.
+    setWaActiveSession: builder.mutation({
+      query: (sessionId) => ({
+        url: '/wa/active-session',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: { session_id: sessionId || null },
+      }),
     }),
   }),
 });
