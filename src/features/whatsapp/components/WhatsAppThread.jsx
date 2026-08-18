@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Save, Loader2, AlertTriangle, MessageCircle, Paperclip, PowerOff } from 'lucide-react';
+import { Send, Save, Loader2, AlertTriangle, MessageCircle, Paperclip, PowerOff, Phone } from 'lucide-react';
 import { useWaConnected } from '../useWaConnected';
 
 // Read a browser File into base64 (without the data: URL prefix).
@@ -12,7 +12,7 @@ function fileToBase64(file) {
   });
 }
 
-import { useGetWhatsappMessagesQuery, useSendWhatsappMessageMutation, useUpdateWhatsappMessageMutation, useSendToWhatsappMutation, useMarkWhatsappSeenMutation } from '@/services';
+import { useGetWhatsappMessagesQuery, useSendWhatsappMessageMutation, useUpdateWhatsappMessageMutation, useSendToWhatsappMutation, useMarkWhatsappSeenMutation, useGetConversationSessionQuery, useSetConversationSessionMutation } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { SkeletonList } from '@/shared/components/ui';
 import {
@@ -85,6 +85,14 @@ function MessageBubble({ row, adminMode, dispatching, onDispatch }) {
           {row.agent_name && <span className="truncate max-w-[120px]">{row.agent_name}</span>}
           {row.agent_name && when && <span>·</span>}
           {when && <span>{when}</span>}
+          {/* Which of our numbers carried this message. Read from the message itself,
+              not from live session state, so history stays truthful after a number
+              is re-paired or removed. Older messages have none and simply omit it. */}
+          {msg.session_phone && (
+            <span className="truncate max-w-[130px]" title={`${outbound ? 'Sent from' : 'Received on'} ${msg.session_phone}`}>
+              · {outbound ? 'from' : 'on'} {msg.session_phone}
+            </span>
+          )}
           {status && (
             <span
               className={`ml-auto inline-flex items-center rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide ${statusTone(msg.status || (outbound ? 'pending' : ''))}`}
@@ -135,6 +143,22 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
   const [sendToWhatsapp] = useSendToWhatsappMutation();
   const [markSeen] = useMarkWhatsappSeenMutation();
 
+  // Which of our numbers this chat is on. Replies are routed to it server-side;
+  // this is here to show the agent the number, and to offer a switch when it is
+  // banned/logged out (can_send false) so the chat can carry on from another one.
+  const { data: convSession, refetch: refetchConvSession } = useGetConversationSessionQuery(phone, {
+    skip: !hasPhone || !waConnected,
+  });
+  const [setConvSession, { isLoading: switching }] = useSetConversationSessionMutation();
+
+  const switchNumber = async (sessionId) => {
+    try {
+      await setConvSession({ clientPhone: phone, sessionId, reason: 'switched from chat' }).unwrap();
+    } catch (e) {
+      toastError(`Could not switch number: ${parseApiError(e).message}`);
+    }
+  };
+
   // Opening a conversation marks its inbound messages as seen (clears the
   // unread badge in the admin console). Runs whenever the phone changes.
   useEffect(() => {
@@ -181,16 +205,29 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
       if (!adminMode) {
         const id = created?.id ?? created?.data?.id;
         try {
-          const sendRes = await sendToWhatsapp({ to: phone, message: body }).unwrap();
+          // msg_id lets the server write the sending number onto this row itself,
+          // so it is stored even if the patch below never lands.
+          const sendRes = await sendToWhatsapp({ to: phone, message: body, msg_id: id }).unwrap();
           if (id != null) {
             await updateMessage({
               id,
-              // Keep the WhatsApp message id so delivery/read acks can match this row.
-              message: { ...markMessageSent(created?.message ?? built), wa_message_id: sendRes?.result?.messageId },
+              message: {
+                ...markMessageSent(created?.message ?? built),
+                // Keep the WhatsApp message id so delivery/read acks can match this row.
+                wa_message_id: sendRes?.result?.messageId,
+                // Record which number carried it — this is what keeps the next
+                // reply on the same number.
+                session_id: sendRes?.session,
+                session_phone: sendRes?.session_phone,
+              },
               clientPhone: phone,
             }).unwrap();
           }
         } catch (sendErr) {
+          // 409 = the number this chat is on is banned/logged out. Refresh the
+          // banner so the agent gets the switch-number prompt instead of just an
+          // error; the message stays pending and can be re-sent after switching.
+          if (sendErr?.status === 409) refetchConvSession();
           toastError(`Saved, but sending failed: ${parseApiError(sendErr).message}`);
         }
       }
@@ -270,15 +307,22 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
             media_base64: b64,
             mimetype: file.type || undefined,
             filename: file.name,
+            msg_id: id,
           }).unwrap();
           if (id != null) {
             await updateMessage({
               id,
-              message: { ...markMessageSent(created?.message ?? built), wa_message_id: sendRes?.result?.messageId },
+              message: {
+                ...markMessageSent(created?.message ?? built),
+                wa_message_id: sendRes?.result?.messageId,
+                session_id: sendRes?.session,
+                session_phone: sendRes?.session_phone,
+              },
               clientPhone: phone,
             }).unwrap();
           }
         } catch (sendErr) {
+          if (sendErr?.status === 409) refetchConvSession();
           toastError(`Saved, but sending file failed: ${parseApiError(sendErr).message}`);
         }
       }
@@ -298,6 +342,59 @@ export default function WhatsAppThread({ clientPhone, agentName, agentId, fill =
 
   return (
     <div className={fill ? 'flex flex-col h-full gap-2' : 'space-y-2'}>
+      {/* Which of our numbers this chat is on. Two states: healthy (just names the
+          number, so the agent knows what the customer sees) and unavailable — the
+          number is banned/logged out/removed, so replies are held and the chat has
+          to be moved to another number to continue. */}
+      {hasPhone && waConnected && convSession?.session_id && (
+        convSession.can_send ? (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border/60 bg-secondary/20 text-[11px] text-muted-foreground">
+            <Phone className="w-3 h-3 shrink-0 text-emerald-400" />
+            <span>
+              Replying from{' '}
+              <span className="font-medium text-foreground">
+                {convSession.session_phone || convSession.session_name}
+              </span>
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 space-y-1.5">
+            <div className="flex items-start gap-1.5 text-[11px] text-amber-200">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+              <span>
+                This chat is on{' '}
+                <span className="font-medium">
+                  {convSession.session_phone || convSession.session_id}
+                </span>
+                , which is not connected ({convSession.session_status || 'unavailable'}).
+                {convSession.alternatives?.length
+                  ? ' Switch to another number to keep replying:'
+                  : ' No other number is connected — reconnect a session first.'}
+              </span>
+            </div>
+            {!!convSession.alternatives?.length && (
+              <div className="flex flex-wrap gap-1.5 pl-5">
+                {convSession.alternatives.map((alt) => (
+                  <button
+                    key={alt.id}
+                    type="button"
+                    disabled={switching}
+                    onClick={() => switchNumber(alt.id)}
+                    className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-amber-500/50
+                      bg-amber-500/15 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/25
+                      transition-smooth active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
+                    title={`Continue this chat from ${alt.phone || alt.name}`}
+                  >
+                    {switching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Phone className="w-3 h-3" />}
+                    {alt.phone || alt.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      )}
+
       {/* Thread */}
       <div
         ref={scrollRef}

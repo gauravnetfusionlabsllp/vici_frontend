@@ -17,6 +17,7 @@ export const dashboardApi = createApi({
     'CustomColumns',
     'ManagerView',
     'WhatsappMessages',
+    'WaConversationSession',
     'WaTemplates',
     'WaHolidays',
     'WaAutomation',

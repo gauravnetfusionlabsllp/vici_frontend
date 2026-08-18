@@ -11,6 +11,8 @@ import { CampaignPerformance } from './components/CampaignPerformance';
 import HourlyPerformanceHeatmap from './components/HourlyPerformance';
 import { LeadFunnel } from './components/LeadFunnel';
 import { RnrTierFunnel } from './components/RnrTierFunnel';
+import { MetaLeadSplit } from './components/MetaLeadSplit';
+import { CallAttemptChart } from './components/CallAttemptChart';
 
 export default function DashboardPage() {
   const { data: campaignPerformance = [] } =
@@ -52,6 +54,7 @@ export default function DashboardPage() {
     {/* LEFT COLUMN */}
     <div className="lg:col-span-2 space-y-4 stagger-children">
       <TotalDialsToday/>
+      <MetaLeadSplit/>
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-1/3 h-100%">
           <DialerPerformance data={dialerPerformance} graphData={graphData} isLoading={dialerPerformanceLoading} isGraphDataLoading={graphDataLoading}/>
@@ -68,6 +71,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col min-h-0">
         <LeadFunnel />
       </div>
+      <CallAttemptChart />
       {/* <RnrTierFunnel /> */}
       <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth">
         <div className="flex justify-between items-center m-2 lg:mb-4">

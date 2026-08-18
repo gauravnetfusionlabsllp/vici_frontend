@@ -139,7 +139,11 @@ export default function MetaLeadsGrid({ rows }) {
         headerName: 'Agent Name',
         colId: '__agent',
         width: 140,
-        valueGetter: (p) => p.data?.agent_name || p.data?.called_by || '',
+        headerTooltip:
+          'Agent the lead is assigned to (vicidial_list.user), set the moment it arrives. ' +
+          'Falls back to the agent who dialed it if the lead carries no assignment.',
+        valueGetter: (p) =>
+          p.data?.assigned_to || p.data?.assigned_user || p.data?.agent_name || p.data?.called_by || '',
         cellRenderer: AgentCellRenderer,
       },
     ],

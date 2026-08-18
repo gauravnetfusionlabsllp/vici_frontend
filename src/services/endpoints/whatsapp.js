@@ -9,6 +9,8 @@ export const {
   useSendToWhatsappMutation,
   useMarkWhatsappSeenMutation,
   useGetUnreadInboundQuery,
+  useGetConversationSessionQuery,
+  useSetConversationSessionMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getWhatsappMessages: builder.query({
@@ -62,7 +64,37 @@ export const {
     sendToWhatsapp: builder.mutation({
       // Pass the whole body so callers can add media_url / media_base64 /
       // mimetype / filename for file sends (backend /send auto-routes media).
+      // The reply is routed server-side to the number this conversation is
+      // already on, so no `session` is needed here; the response echoes back
+      // `session` / `session_phone` for stamping onto the stored row. A 409 means
+      // that number is banned/logged out — refetch the conversation session and
+      // let the user pick another.
       query: (body) => ({ url: '/send', method: 'POST', body }),
+    }),
+
+    // Which of OUR numbers this chat is on, whether it can still send, and the
+    // connected alternatives to switch to. Separate from the fleet-wide
+    // /wa/active-session: this is per customer.
+    getConversationSession: builder.query({
+      query: (clientPhone) => ({
+        url: '/wa/conversation-session',
+        params: { client_phone: clientPhone },
+      }),
+      providesTags: (result, error, clientPhone) => [
+        { type: 'WaConversationSession', id: clientPhone || 'ALL' },
+      ],
+    }),
+
+    // Move this chat to another number (session_id null/'' clears the override).
+    setConversationSession: builder.mutation({
+      query: ({ clientPhone, sessionId, reason }) => ({
+        url: '/wa/conversation-session',
+        method: 'POST',
+        body: { client_phone: clientPhone, session_id: sessionId ?? null, reason },
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: 'WaConversationSession', id: arg?.clientPhone || 'ALL' },
+      ],
     }),
 
     // Unseen inbound replies for notifications (scoped to the agent's own

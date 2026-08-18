@@ -3,6 +3,7 @@
 export { dashboardApi } from './api';
 export { setSessionExpired, getSessionExpired } from './baseQuery';
 
+export * from './endpoints/ib';
 export * from './endpoints/auth';
 export * from './endpoints/dashboard';
 export * from './endpoints/calls';

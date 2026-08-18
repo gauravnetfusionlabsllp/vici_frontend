@@ -1,5 +1,12 @@
 import { dashboardApi } from '../api';
 
+// What "called" means for META leads, app-wide. 'log' = VICIdial logged a dial for the
+// number inside the window. The server's own default is 'status' (vicidial_list.status
+// left 'NEW'), which undercounts: a dial ending INVN/no-answer can leave the lead row at
+// 'NEW' (~1,650 such leads system-wide), so the KPI strip and this dashboard's META
+// section would disagree on the same range. Every caller sends this unless it overrides.
+export const CALLED_BASIS = 'log';
+
 export const {
   useGetTotalDialsTodayQuery,
   useGetCallStatusQuery,
@@ -13,6 +20,8 @@ export const {
   useGetLeadfunnelQuery,
   useGetRnrTiersQuery,
   useGetMetaLeadStatsQuery,
+  useGetMetaLeadStatsRangeQuery,
+  useGetMetaLeadCallAttemptsQuery,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getTotalDialsToday: builder.query({
@@ -68,10 +77,54 @@ export const {
       extraOptions: { maxRetries: 3, withDate: true, withCampaign: true, withUsername: true },
     }),
     getMetaLeadStats: builder.query({
-      query: () => '/metalead-stats',
+      // arg: { ib } — 'all' (default) | 'ib' | 'non_ib'. The top-level totals follow
+      // the filter; `breakdown` carries both sides either way, so the dashboard KPIs
+      // (which pass no arg) are unaffected. `basis` defaults to CALLED_BASIS so these
+      // KPIs agree with the META section, which reports the same cohort.
+      query: (arg) => {
+        const params = new URLSearchParams();
+        if (arg?.ib && arg.ib !== 'all') params.set('ib', arg.ib);
+        params.set('basis', arg?.basis || CALLED_BASIS);
+        return `/metalead-stats?${params.toString()}`;
+      },
       providesTags: ['Dashboard', 'DATE_FILTERED'],
       keepUnusedDataFor: 60,
       extraOptions: { maxRetries: 3, withDate: true },
+    }),
+    // Same funnel endpoint, but pinned to an explicit date range instead of the
+    // dashboard date picker: `withDate` is deliberately OFF (it would append a
+    // second sd/ed pair) and DATE_FILTERED is not claimed, so moving the picker
+    // neither rewrites nor invalidates this cohort.
+    getMetaLeadStatsRange: builder.query({
+      // `basis` picks what "called" means: 'status' (app-wide default) or 'log'
+      // (has a vicidial_log dial inside the window). See the endpoint docstring.
+      query: ({ sd, ed, ib, basis } = {}) => {
+        const params = new URLSearchParams();
+        if (sd) params.set('sd', sd);
+        if (ed) params.set('ed', ed);
+        if (ib && ib !== 'all') params.set('ib', ib);
+        params.set('basis', basis || CALLED_BASIS);
+        const qs = params.toString();
+        return `/metalead-stats${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: ['Dashboard'],
+      keepUnusedDataFor: 300,
+      extraOptions: { maxRetries: 3 },
+    }),
+    // Dial-count distribution (1x / 2x / 3x / 4+) per distinct META number, from
+    // vicidial_log. Same fixed-range contract as getMetaLeadStatsRange: explicit sd,
+    // no `withDate`, no DATE_FILTERED claim.
+    getMetaLeadCallAttempts: builder.query({
+      query: ({ sd, ed } = {}) => {
+        const params = new URLSearchParams();
+        if (sd) params.set('sd', sd);
+        if (ed) params.set('ed', ed);
+        const qs = params.toString();
+        return `/metalead-call-attempts${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: ['Dashboard'],
+      keepUnusedDataFor: 300,
+      extraOptions: { maxRetries: 3 },
     }),
   }),
 });
