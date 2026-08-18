@@ -214,10 +214,11 @@ function MetaLeadSplitImpl() {
   // watched on a wall display, where the browser rarely holds focus and the leads keep
   // arriving regardless. `fulfilledTimeStamp` drives the visible "updated" stamp below,
   // so a stalled poll is obvious instead of silent.
-  const { data, isLoading, isFetching, fulfilledTimeStamp } = useGetMetaLeadStatsRangeQuery(
-    { sd: META_COHORT_START },
-    { pollingInterval: 60000, skipPollingIfUnfocused: false },
-  );
+  const { data, isLoading, isFetching, fulfilledTimeStamp, refetch } =
+    useGetMetaLeadStatsRangeQuery(
+      { sd: META_COHORT_START },
+      { pollingInterval: 60000, skipPollingIfUnfocused: false },
+    );
 
   const breakdown = data?.breakdown || {};
   const overall = breakdown.all || {};
@@ -255,19 +256,32 @@ function MetaLeadSplitImpl() {
                 <span className="text-slate-600">·</span>
                 <span>independent of the date filter above</span>
                 <span className="text-slate-600">·</span>
-                {/* Proof the minute poll is alive: the stamp moves on every refresh */}
-                <span
-                  className="inline-flex items-center gap-1 text-slate-500"
-                  title="This panel reloads every 60 seconds"
+                {/* Proof the minute poll is alive — the stamp moves on every refresh — and
+                    a way to pull fresh numbers on demand without reloading the page. */}
+                <button
+                  type="button"
+                  onClick={refetch}
+                  disabled={isFetching}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25
+                             bg-emerald-500/10 px-2 py-0.5 font-mono-nums text-[10px] text-emerald-200/90
+                             transition-smooth hover:border-emerald-400/40 hover:bg-emerald-500/20
+                             disabled:cursor-default"
+                  title="Reloads automatically every 60 seconds — click to refresh now"
                 >
-                  <RefreshCw
-                    className={`h-2.5 w-2.5 ${isFetching ? 'animate-spin text-sky-300' : ''}`}
-                    aria-hidden="true"
+                  {/* A live dot + a clock that visibly moves: the panel's freshness should be
+                      readable at a glance from across the room, not inferred. */}
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-slow"
+                    style={{ boxShadow: '0 0 8px rgba(52,211,153,0.65)' }}
                   />
                   {fulfilledTimeStamp
-                    ? `updated ${dayjs(fulfilledTimeStamp).format('h:mm:ss A')}`
-                    : 'loading…'}
-                </span>
+                    ? `LIVE · updated ${dayjs(fulfilledTimeStamp).format('h:mm:ss A')}`
+                    : 'connecting…'}
+                  <RefreshCw
+                    className={`h-2.5 w-2.5 ${isFetching ? 'animate-spin text-emerald-300' : 'opacity-60'}`}
+                    aria-hidden="true"
+                  />
+                </button>
               </p>
             </div>
           </div>
