@@ -14,47 +14,17 @@ const DISPOSITION_LABEL = DISPOSITIONS.reduce((acc, d) => {
 export const dispositionLabel = (code) => (code ? DISPOSITION_LABEL[code] || code : null);
 
 // ────────────────────────── Introducing Broker (IB) ──────────────────────────
-// The IB question lives in the Meta form payload (raw_data) under a form-specific key and is
-// worded differently per form ("which best describes you", "which opportunity are you interested
-// in"), so match keys and answers by normalized substring rather than exact text.
-const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-const IB_QUESTION_KEYS = [
-  'whichbestdescribes',
-  'whatbestdescribes',
-  'bestdescribesyou',
-  'describesyou',
-  'opportunityareyouinterested',
-  'opportunityinterested',
-  'whichopportunity',
-];
-// Matches both "I am an introducing broker" and "introducing broker (ib) partnership".
-const IB_ANSWER = 'introducingbroker';
-
-function parseRaw(data) {
-  if (!data) return null;
-  if (typeof data === 'string') {
-    try { return JSON.parse(data); } catch { return null; }
-  }
-  return data;
-}
-
-// true → the lead answered "I am an introducing broker"; false → answered something else;
-// null → the form payload is missing, so there is nothing to judge.
-export function isIntroducingBroker(rawData) {
-  const raw = parseRaw(rawData);
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  // A form can carry more than one of these questions — any IB answer marks the lead as IB.
-  for (const [k, v] of Object.entries(raw)) {
-    if (!IB_QUESTION_KEYS.some((c) => norm(k).includes(c))) continue;
-    const answer = Array.isArray(v) ? v.join(' ') : v;
-    if (norm(answer).includes(IB_ANSWER)) return true;
-  }
-  return false;
-}
+// IB is the VICIdial list the lead was routed into — list 7022026 is the IB team's,
+// 971585658633 is everyone else's — so only the server can answer it, and every row that
+// carries an IB column arrives with an `is_ib` boolean on it (api/services/vicidial.py,
+// resolve_ib). The grids just render that flag.
+//
+// It used to be derived here from the Meta form answer, which called a lead non-IB
+// whenever the IB came from the form/campaign name ("…-ib") or the landing page's
+// "interest": "ib" rather than a form question — so every SGFX_Landing lead from a
+// tesla-*-ib campaign sat in the IB list while this column said No.
 
 // Grid-friendly 'Yes' / 'No' / '' so sorting, filtering and export all work off plain text.
-export function ibLabel(rawData) {
-  const v = isIntroducingBroker(rawData);
-  return v === null ? '' : v ? 'Yes' : 'No';
+export function ibLabel(isIb) {
+  return isIb === null || isIb === undefined ? '' : isIb ? 'Yes' : 'No';
 }

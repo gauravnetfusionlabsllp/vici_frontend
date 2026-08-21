@@ -18,13 +18,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
 const DISPOSITIONS = [
-  { label: "Ring No Response", value: "N" },
+  // { label: "Ring No Response", value: "N" },
   { label: "Busy", value: "B" },
   { label: "Invalid Number", value: "INVN" },
   { label: "Interested", value: "IN" },
   { label: "Callback", value: "CBR" },
   { label: "Not Interested", value: "NI" },
-  { label: "Follow Up", value: "FUC" },
+  // { label: "Follow Up", value: "FUC" },
   
   // { label: "Completed", value: "C" },
   // { label: "No Answer", value: "N" },

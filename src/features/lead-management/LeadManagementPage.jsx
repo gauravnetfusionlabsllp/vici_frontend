@@ -11,8 +11,9 @@ import MetaLeadsGrid from './components/MetaLeadsGrid';
 
 export default function LeadManagementPage() {
   // IB split — 'all' | 'ib' | 'non_ib'. Sent to BOTH requests, so the funnel counts
-  // describe exactly the rows in the grid; the server decides IB off the Meta form
-  // answer in raw_fields (api/core/utils.is_ib_lead), the same rule the IB column shows.
+  // describe exactly the rows in the grid; the server decides IB off the VICIdial list
+  // the lead was routed into (api/services/vicidial.resolve_ib), the same rule the IB
+  // column shows.
   const [ib, setIb] = useState('all');
 
   const {
@@ -92,9 +93,9 @@ export default function LeadManagementPage() {
                   }`}
                   title={
                     key === 'ib'
-                      ? 'Leads whose Meta form answer names "introducing broker"'
+                      ? 'Leads routed into the IB list (7022026)'
                       : key === 'non_ib'
-                        ? 'Everything else, including forms that never asked the question'
+                        ? 'Leads routed into the general list (971585658633)'
                         : 'Both sides of the IB split'
                   }
                 >

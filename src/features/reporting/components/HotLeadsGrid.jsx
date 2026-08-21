@@ -316,7 +316,7 @@ function RawDataCellRenderer(params) {
   return <RawDataCell data={params.value} theme={params.context.theme} />;
 }
 
-// IB = the form answer names "introducing broker" (see isIntroducingBroker for the questions).
+// IB = the lead sits in VICIdial's IB list (7022026); the server sends `is_ib` on the row.
 function IbCellRenderer(params) {
   const v = params.value === 'Yes' ? true : params.value === 'No' ? false : null;
   return <BoolBadge value={v} />;
@@ -436,8 +436,9 @@ function RecordingCellRenderer(params) {
 }
 
 function AgentCellRenderer(params) {
-  const row = params.data;
-  return <span className="text-xs text-foreground/80">{row.vici_call_agent||row.agent_name || row.agent_user || '—'}</span>;
+  // Reads the column value, not the row, so what is shown is exactly what the
+  // header filter matches on.
+  return <span className="text-xs text-foreground/80">{params.value || '—'}</span>;
 }
 
 // ────────── Custom-column cells (admin-defined) ──────────
@@ -877,15 +878,22 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         colId: 'is_ib',
         width: 80,
         headerTooltip:
-          'Introducing broker — from the "which best describes you" / "which opportunity are you interested in" form answer',
-        valueGetter: (p) => ibLabel(p.data?.raw_data),
+          'Introducing broker — Yes when the lead was routed into the IB list (7022026), ' +
+          'No when it went to the general list (971585658633)',
+        valueGetter: (p) => ibLabel(p.data?.is_ib),
         cellRenderer: IbCellRenderer,
       },
       {
         headerName: 'Agent Name',
         colId: '__agent',
         width: 140,
-        // valueGetter: (p) => p.vici_call_agent || p.data.agent_name || p.data.agent_user || '—',
+        // The agent reaches the row under three different keys depending on which
+        // endpoint filled it, so the column needs a valueGetter: with neither this nor
+        // a `field`, ag-grid sees undefined for every row and the header filter (and
+        // sort, and export) has nothing to match on. '' rather than the display dash,
+        // so an unassigned lead does not filter as if the dash were a name.
+        valueGetter: (p) =>
+          p.data?.vici_call_agent || p.data?.agent_name || p.data?.agent_user || '',
         cellRenderer: AgentCellRenderer,
       },
      

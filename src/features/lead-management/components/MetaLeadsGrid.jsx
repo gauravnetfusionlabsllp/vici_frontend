@@ -13,7 +13,8 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 const RawFieldsCellRenderer = (p) => <RawDataCell data={p.value} />;
 
-// IB = the form answer names "introducing broker" (see isIntroducingBroker for the questions).
+// IB = the lead sits in VICIdial's IB list (7022026); the server resolves it and sends
+// `is_ib` on the row.
 // Mirrors the hot-leads grid: valueGetter keeps 'Yes'/'No'/'' so sort, filter and export work.
 const IbCellRenderer = (p) => (
   <BoolBadge value={p.value === 'Yes' ? true : p.value === 'No' ? false : null} />
@@ -130,8 +131,13 @@ export default function MetaLeadsGrid({ rows }) {
         colId: 'is_ib',
         width: 80,
         headerTooltip:
-          'Introducing broker — from the "which best describes you" / "which opportunity are you interested in" form answer',
-        valueGetter: (p) => ibLabel(p.data?.raw_fields),
+          'Introducing broker — Yes when the lead was routed into the IB list (7022026), ' +
+          'No when it went to the general list (971585658633)',
+        valueGetter: (p) => ibLabel(p.data?.is_ib),
+        tooltipValueGetter: (p) =>
+          p.data?.ib_source === 'routing'
+            ? 'Not in either VICIdial list yet — showing the list this lead will be pushed to'
+            : null,
         cellClass: 'flex items-center',
         cellRenderer: IbCellRenderer,
       },
