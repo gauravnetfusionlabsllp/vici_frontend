@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Users, Phone, PauseCircle, CalendarRange, Briefcase, UserRound, RefreshCw } from 'lucide-react';
 import dayjs from 'dayjs';
 
-import { useGetMetaLeadStatsRangeQuery } from '@/services';
+import { useGetMetaLeadIbSplitQuery } from '@/services';
 import { SkeletonOverviewCard } from '@/shared/components/ui';
 
 import { META_COHORT_START } from '../metaCohort';
@@ -56,27 +56,23 @@ const TONE = {
   },
 };
 
-const GROUPS = [
-  {
-    key: 'ib',
-    title: 'IB',
-    caption: 'Introducing brokers',
-    prefix: 'IB',
-    icon: Briefcase,
-    tone: 'sky',
-  },
-  {
-    key: 'non_ib',
-    title: 'Non-IB',
-    caption: 'Everything else, incl. forms that never asked',
-    prefix: 'Non-IB',
-    icon: UserRound,
-    tone: 'violet',
-  },
+// Presentation only. /metalead-ib-split names the sides and orders them (IB first) —
+// this maps its `key` onto an icon and a tone, so adding a third bucket server-side
+// needs one entry here and nothing else.
+const GROUP_STYLE = {
+  ib: { icon: Briefcase, tone: 'sky' },
+  non_ib: { icon: UserRound, tone: 'violet' },
+};
+const styleFor = (key) => GROUP_STYLE[key] || { icon: UserRound, tone: 'sky' };
+
+// Holds the section's shape while the first request is in flight; every number on
+// screen comes from the API, so these carry labels only.
+const PLACEHOLDER_GROUPS = [
+  { key: 'ib', label: 'IB', caption: 'Introducing brokers — form name carries “ib”' },
+  { key: 'non_ib', label: 'Non-IB', caption: 'Every other form' },
 ];
 
-const pct = (part, whole) => (whole > 0 ? (part / whole) * 100 : 0);
-const fmtPct = (v) => `${v.toFixed(1).replace(/\.0$/, '')}%`;
+const fmtPct = (v) => `${Number(v ?? 0).toFixed(1).replace(/\.0$/, '')}%`;
 const fmtNum = (v) => (v == null ? '—' : Number(v).toLocaleString('en-IN'));
 
 /** One metric tile: micro label, icon chip, hero number, and a share bar with caption. */
@@ -128,25 +124,34 @@ function StatTile({ label, value, icon: Icon, tone: toneKey, share, caption }) {
   );
 }
 
-/** One side of the IB split: header with reach bar, then its three tiles. */
-function SplitGroup({ group, funnel, cohortTotal, isLoading }) {
-  const tone = TONE[group.tone];
-  const { total_leads: total = 0, called_leads: called = 0, pending_leads: pending = 0 } = funnel || {};
-  const reach = pct(called, total);
-  const shareOfCohort = pct(total, cohortTotal);
-  const GroupIcon = group.icon;
+/** One side of the IB split: header with reach bar, then its three tiles.
+ *  `group` is a row of the API's `groups` array — counts, percentages and labels
+ *  all arrive already computed. */
+function SplitGroup({ group, cohortTotal, isLoading }) {
+  const {
+    label,
+    caption,
+    total_leads: total = 0,
+    called_leads: called = 0,
+    pending_leads: pending = 0,
+    share_pct: shareOfCohort = 0,
+    reach_pct: reach = 0,
+    pending_pct: pendingShare = 0,
+  } = group;
+  const { icon: GroupIcon, tone: toneKey } = styleFor(group.key);
+  const tone = TONE[toneKey];
 
   const tiles = [
     {
-      label: `${group.prefix} Total Leads`,
+      label: `${label} Total Leads`,
       value: total,
       icon: Users,
-      tone: group.tone,
+      tone: toneKey,
       share: shareOfCohort,
       caption: `of ${fmtNum(cohortTotal)} META leads in range`,
     },
     {
-      label: `${group.prefix} Called Leads`,
+      label: `${label} Called Leads`,
       value: called,
       icon: Phone,
       tone: 'emerald',
@@ -154,11 +159,11 @@ function SplitGroup({ group, funnel, cohortTotal, isLoading }) {
       caption: 'at least one dial logged',
     },
     {
-      label: `${group.prefix} Pending Leads`,
+      label: `${label} Pending Leads`,
       value: pending,
       icon: PauseCircle,
       tone: 'rose',
-      share: pct(pending, total),
+      share: pendingShare,
       caption: 'no dial logged yet',
     },
   ];
@@ -172,7 +177,7 @@ function SplitGroup({ group, funnel, cohortTotal, isLoading }) {
           </span>
           <div>
             <p className="text-sm font-semibold leading-tight text-white">
-              {group.title}
+              {label}
               <span
                 className={`ml-2 rounded-full border px-1.5 py-0.5 align-middle font-mono-nums
                             text-[10px] font-semibold ${tone.chip}`}
@@ -180,7 +185,7 @@ function SplitGroup({ group, funnel, cohortTotal, isLoading }) {
                 {isLoading ? '·' : fmtPct(shareOfCohort)} of cohort
               </span>
             </p>
-            <p className="text-[10px] text-slate-400">{group.caption}</p>
+            <p className="text-[10px] text-slate-400">{caption}</p>
           </div>
         </div>
 
@@ -215,20 +220,21 @@ function MetaLeadSplitImpl() {
   // arriving regardless. `fulfilledTimeStamp` drives the visible "updated" stamp below,
   // so a stalled poll is obvious instead of silent.
   const { data, isLoading, isFetching, fulfilledTimeStamp, refetch } =
-    useGetMetaLeadStatsRangeQuery(
+    useGetMetaLeadIbSplitQuery(
       { sd: META_COHORT_START },
       { pollingInterval: 60000, skipPollingIfUnfocused: false },
     );
 
-  const breakdown = data?.breakdown || {};
-  const overall = breakdown.all || {};
-  const cohortTotal = overall.total_leads || 0;
-  const overallReach = pct(overall.called_leads || 0, cohortTotal);
+  // Cohort-wide funnel sits at the top level of the response; `groups` carries the
+  // two sides in the order the API wants them shown.
+  const cohortTotal = data?.total_leads || 0;
+  const overallReach = data?.reach_pct || 0;
+  const groups = data?.groups?.length ? data.groups : PLACEHOLDER_GROUPS;
 
   const summary = [
-    { label: 'Total', value: overall.total_leads, tone: 'sky' },
-    { label: 'Called', value: overall.called_leads, tone: 'emerald' },
-    { label: 'Pending', value: overall.pending_leads, tone: 'rose' },
+    { label: 'Total', value: data?.total_leads, tone: 'sky' },
+    { label: 'Called', value: data?.called_leads, tone: 'emerald' },
+    { label: 'Pending', value: data?.pending_leads, tone: 'rose' },
   ];
 
   return (
@@ -322,17 +328,16 @@ function MetaLeadSplitImpl() {
                 ? 'Loading cohort…'
                 : `${fmtPct(overallReach)} of the cohort has been dialled at least once`}
             </span>
-            <span>{isLoading ? '' : `${fmtNum(overall.pending_leads)} still pending`}</span>
+            <span>{isLoading ? '' : `${fmtNum(data?.pending_leads)} still pending`}</span>
           </div>
         </div>
 
         {/* ── The two sides ── */}
         <div className="space-y-2.5">
-          {GROUPS.map((group) => (
+          {groups.map((group) => (
             <SplitGroup
               key={group.key}
               group={group}
-              funnel={breakdown[group.key]}
               cohortTotal={cohortTotal}
               isLoading={isLoading}
             />

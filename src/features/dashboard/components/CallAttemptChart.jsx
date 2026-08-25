@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { PhoneCall } from 'lucide-react';
 import dayjs from 'dayjs';
 
-import { IB_FILTERS, IB_LABELS, useGetMetaLeadCallAttemptsQuery } from '@/services';
+import { IB_FILTERS, IB_LABELS, useGetMetaLeadIbAttemptsQuery } from '@/services';
 
 import { META_COHORT_START } from '../metaCohort';
 
@@ -19,16 +19,30 @@ import { META_COHORT_START } from '../metaCohort';
 // smallest marks stay the most visible on a dark surface.
 const RAMP = ['#184f95', '#2a78d6', '#5598e7', '#86b6ef', '#b7d3f6'];
 
-const ROWS = [
-  { key: 'not_dialled', label: 'Not called yet',  note: '0 dials',  color: RAMP[0] },
-  { key: '1',           label: 'Called once',     note: '1 dial',   color: RAMP[1] },
-  { key: '2',           label: 'Called twice',    note: '2 dials',  color: RAMP[2] },
-  { key: '3',           label: 'Called 3 times',  note: '3 dials',  color: RAMP[3] },
-  { key: '4_plus',      label: 'Called 4+ times', note: '4+ dials', color: RAMP[4] },
+// Presentation only. /metalead-ib-attempts names the buckets and orders them; this maps
+// its `key` onto a step of the ramp, darkest at 0 dials through lightest at 4+.
+const BUCKET_COLOR = {
+  not_dialled: RAMP[0],
+  1: RAMP[1],
+  2: RAMP[2],
+  3: RAMP[3],
+  '4_plus': RAMP[4],
+};
+
+// Holds the chart's shape while the first request is in flight; every number on screen
+// comes from the API, so these carry labels only.
+const PLACEHOLDER_ROWS = [
+  { key: 'not_dialled', label: 'Not called yet',  note: '0 dials' },
+  { key: '1',           label: 'Called once',     note: '1 dial' },
+  { key: '2',           label: 'Called twice',    note: '2 dials' },
+  { key: '3',           label: 'Called 3 times',  note: '3 dials' },
+  { key: '4_plus',      label: 'Called 4+ times', note: '4+ dials' },
 ];
 
 const fmtNum = (v) => (v == null ? '—' : Number(v).toLocaleString('en-IN'));
-const fmtPct = (v) => `${v.toFixed(1).replace(/\.0$/, '')}%`;
+const fmtPct = (v) => `${Number(v ?? 0).toFixed(1).replace(/\.0$/, '')}%`;
+// Chart geometry only — bar widths and gridline positions against the axis top.
+// The data's own percentages arrive from the API as share_pct.
 const pct = (part, whole) => (whole > 0 ? (part / whole) * 100 : 0);
 
 /** Round the axis top up to a clean number and return three ticks for it. */
@@ -46,7 +60,7 @@ function CallAttemptChartImpl() {
   // Matched to the section's 60s cadence — at two minutes this card lagged behind the
   // tiles it sits beside, and both describe the same cohort. Focus-skipping is off for
   // the same reason it is there: the dashboard is watched on a screen that isn't focused.
-  const { data, isLoading } = useGetMetaLeadCallAttemptsQuery(
+  const { data, isLoading } = useGetMetaLeadIbAttemptsQuery(
     { sd: META_COHORT_START },
     { pollingInterval: 60000, skipPollingIfUnfocused: false },
   );
@@ -54,17 +68,17 @@ function CallAttemptChartImpl() {
   const side = data?.breakdown?.[ib] || {};
   const {
     numbers = 0,
-    dialled = 0,
-    not_dialled: notDialled = 0,
     total_attempts: totalDials = 0,
-    attempts = {},
+    avg_attempts: avgDials = 0,
   } = side;
 
-  // Every distinct number lands in exactly one row, so the five shares sum to 100%.
-  const valueOf = (key) => (key === 'not_dialled' ? notDialled : attempts[key] ?? 0);
-  const bars = ROWS.map((row) => ({ ...row, value: valueOf(row.key), share: pct(valueOf(row.key), numbers) }));
-  const { top, ticks } = axisTicks(Math.max(...bars.map((b) => b.value), 0));
-  const avgDials = dialled > 0 ? totalDials / dialled : 0;
+  // Every distinct number lands in exactly one bucket, so the five shares sum to 100%.
+  // Counts, labels and shares all arrive from the API; only the colour is added here.
+  const bars = (side.rows?.length ? side.rows : PLACEHOLDER_ROWS).map((row) => ({
+    ...row,
+    color: BUCKET_COLOR[row.key],
+  }));
+  const { top, ticks } = axisTicks(Math.max(...bars.map((b) => b.numbers || 0), 0));
 
   return (
     <div className="p-2 border border-border rounded-lg bg-card/60 transition-smooth animate-fade-in-up">
@@ -103,7 +117,7 @@ function CallAttemptChartImpl() {
         {bars.map((bar) => (
           <div
             key={bar.key}
-            title={`${fmtNum(bar.value)} numbers — ${bar.note} (${fmtPct(bar.share)} of ${fmtNum(numbers)})`}
+            title={`${fmtNum(bar.numbers)} numbers — ${bar.note} (${fmtPct(bar.share_pct)} of ${fmtNum(numbers)})`}
             className="group flex items-center gap-2 rounded py-1 transition-smooth hover:bg-white/[0.04]"
           >
             {/* Label wears a text token; the coloured bar beside it carries the encoding */}
@@ -126,7 +140,7 @@ function CallAttemptChartImpl() {
                 style={{
                   width: isLoading
                     ? 0
-                    : `max(${bar.value > 0 ? '3px' : '0px'}, ${pct(bar.value, top)}%)`,
+                    : `max(${bar.numbers > 0 ? '3px' : '0px'}, ${pct(bar.numbers, top)}%)`,
                   backgroundColor: bar.color,
                 }}
               />
@@ -134,10 +148,10 @@ function CallAttemptChartImpl() {
 
             <div className="flex w-[86px] shrink-0 items-baseline justify-end gap-1.5">
               <span className="font-mono-nums text-sm font-semibold text-white">
-                {isLoading ? '—' : fmtNum(bar.value)}
+                {isLoading ? '—' : fmtNum(bar.numbers)}
               </span>
               <span className="font-mono-nums text-[10px] text-slate-400">
-                {isLoading ? '' : fmtPct(bar.share)}
+                {isLoading ? '' : fmtPct(bar.share_pct)}
               </span>
             </div>
           </div>
@@ -176,7 +190,7 @@ function CallAttemptChartImpl() {
         </span>
         <span className="text-slate-300">
           <span className="font-mono-nums font-semibold text-white">
-            {isLoading ? '—' : avgDials.toFixed(2)}
+            {isLoading ? '—' : Number(avgDials ?? 0).toFixed(2)}
           </span>{' '}
           dials per called number
         </span>

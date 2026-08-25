@@ -3,53 +3,23 @@ import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
-import { Loader2, Save, CheckCircle, Download, ChevronDown, Check } from 'lucide-react';
+import { Loader2, Save, CheckCircle, ChevronDown, Check } from 'lucide-react';
 
 import {
   useUpdateHotMetaLeadMutation,
-  useDownloadRecordingMutation,
   useUpdateHotMetaLeadCustomFieldsMutation,
 } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
-import { DISPOSITIONS } from '@/features/leads/constants';
 import { gridTheme } from '@/features/manager-view/components/gridConfig';
 import { CONTACT_OPTIONS } from '../constants';
 import { ibLabel, shortDate } from '../utils';
 import BoolBadge from './BoolBadge';
 import RawDataCell from './RawDataCell';
 import ExpandableTextCell from './ExpandableTextCell';
-import RecordingPlayer from './RecordingPlayer';
-
-const DISPOSITION_LABEL = DISPOSITIONS.reduce((acc, d) => {
-  acc[d.value] = d.label;
-  return acc;
-}, {});
-
-// Disposition code → tone bucket. Tones map to the project's status tokens.
-const DISPOSITION_TONE = {
-  CON:  'active',   // Converted
-  IN:   'active',   // Interested
-  CBR:  'primary',  // Callback
-  C:    'neutral',  // Completed
-  B:    'warn',     // Busy
-  N:    'warn',     // No Answer
-  NI:   'danger',   // Not Interested
-  D:    'danger',   // Disconnected
-  INVN: 'danger',   // Invalid Number
-  WN:   'danger',   // Wrong Number
-  FUC:  'primary',  // Follow Up
-  INCALL: 'active',   // In Call (internal-only status for live calls)
-};
-
-const TONE_CLS = {
-  active:  'text-[hsl(var(--status-active))]',
-  warn:    'text-[hsl(var(--status-waiting))]',
-  danger:  'text-destructive',
-  primary: 'text-primary',
-  neutral: 'text-foreground/80',
-};
+import RecordingCell from './RecordingCell';
+import DispositionBadge from './DispositionBadge';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -298,18 +268,7 @@ function ActionCellRenderer(params) {
 }
 
 function ViciLeadStatusCellRenderer(params) {
-  const code = (params.value ?? '').toString().trim().toUpperCase();
-  if (!code) return <span className="text-xs text-muted-foreground">—</span>;
-
-  const label = DISPOSITION_LABEL[code];
-  const tone = DISPOSITION_TONE[code] ?? 'neutral';
-
-  return (
-    <span className={`text-xs ${TONE_CLS[tone]}`} title={label ? `${label} (${code})` : code}>
-      {label ?? code}
-      {label && <span className="ml-1 text-muted-foreground font-mono text-[10px]">({code})</span>}
-    </span>
-  );
+  return <DispositionBadge value={params.value} />;
 }
 
 function RawDataCellRenderer(params) {
@@ -375,63 +334,16 @@ function RatingCellRenderer(params) {
   );
 }
 
-// Strips characters that aren't safe in a filename, collapsing runs to a single underscore.
-function fileSafe(value) {
-  return String(value ?? '').trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '');
-}
-
-// Saves a download from an object-URL string under `fileName` with no page navigation or flash (a
-// blob object URL is same-origin, so the browser honors the `download` filename), then releases it.
-function saveObjectUrl(objectUrl, fileName) {
-  const a = document.createElement('a');
-  a.href = objectUrl;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-}
-
 function RecordingCellRenderer(params) {
-  const { error: toastError } = useToast();
-  const [triggerDownload, { isLoading }] = useDownloadRecordingMutation();
   const row = params.data;
-  const link = row?.recording_link;
-
-  // The raw recording_link is cross-origin (CORS blocks fetch), so we pull the file through our own
-  // reporting proxy — which carries the Bearer token and is same-host (no CORS) — then save it as
-  // <agent>_<phone>.mp3. The mutation returns a ready-made object-URL string.
-  const handleDownload = async () => {
-    if (!link || isLoading) return;
-    const agent = row.vici_call_agent || row.agent_name || row.agent_user;
-    try {
-      const objectUrl = await triggerDownload({ recordingLink: link, agentName: agent, phone: row.phone }).unwrap();
-      const name = `${fileSafe(agent) || 'recording'}_${fileSafe(row.phone)}.mp3`;
-      saveObjectUrl(objectUrl, name);
-    } catch {
-      toastError('Could not download the recording. Please try again.');
-    }
-  };
-
-  if (!link) return <span className="text-xs text-muted-foreground">—</span>;
-
   return (
-    <div className="flex items-center gap-2 w-full">
-      <RecordingPlayer
-        src={link}
-        title={row.recording_filename || 'Call recording'}
-        lengthSec={row.length_in_sec}
-      />
-      <button
-        type="button"
-        onClick={handleDownload}
-        disabled={isLoading}
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth shrink-0 disabled:opacity-50"
-        title="Download recording"
-      >
-        {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-      </button>
-    </div>
+    <RecordingCell
+      link={row?.recording_link}
+      filename={row?.recording_filename}
+      lengthSec={row?.length_in_sec}
+      agentName={row?.vici_call_agent || row?.agent_name || row?.agent_user}
+      phone={row?.phone}
+    />
   );
 }
 

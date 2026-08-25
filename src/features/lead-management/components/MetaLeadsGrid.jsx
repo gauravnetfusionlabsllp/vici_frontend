@@ -6,6 +6,8 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { ibLabel, shortDate } from '@/features/reporting/utils';
 import RawDataCell from '@/features/reporting/components/RawDataCell';
 import BoolBadge from '@/features/reporting/components/BoolBadge';
+import DispositionBadge from '@/features/reporting/components/DispositionBadge';
+import RecordingCell from '@/features/reporting/components/RecordingCell';
 import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 
@@ -22,6 +24,23 @@ const IbCellRenderer = (p) => (
 
 const AgentCellRenderer = (p) => (
   <span className="text-xs text-foreground/80">{p.value || '—'}</span>
+);
+
+// Status of the lead's most recent dial (vicidial_log), falling back to the status it
+// carries in its VICIdial list when it was never dialed — the server resolves both into
+// `disposition`.
+const DispositionCellRenderer = (p) => <DispositionBadge value={p.value} />;
+
+// Newest recording for the lead's phone (recording_log). Plays inline; the download goes
+// through the API proxy, so the file lands as <agent>_<phone>.mp3.
+const RecordingCellRenderer = (p) => (
+  <RecordingCell
+    link={p.data?.recording_link}
+    filename={p.data?.recording_filename}
+    lengthSec={p.data?.length_in_sec}
+    agentName={p.data?.recording_agent || p.data?.agent_name || p.data?.assigned_to}
+    phone={p.data?.phone_number}
+  />
 );
 
 export default function MetaLeadsGrid({ rows }) {
@@ -117,6 +136,24 @@ export default function MetaLeadsGrid({ rows }) {
         field: 'call_count',
         width: 120,
         tooltipField: 'call_count',
+      },
+      {
+        headerName: 'Disposition',
+        field: 'disposition',
+        width: 150,
+        headerTooltip:
+          'Status the most recent dial was closed with (vicidial_log). Leads that were '
+          + 'never dialed fall back to the status they carry in their VICIdial list.',
+        cellRenderer: DispositionCellRenderer,
+      },
+      {
+        headerName: 'Recording',
+        field: 'recording_link',
+        width: 300,
+        sortable: false,
+        filter: false,
+        headerTooltip: 'Newest call recording for this number',
+        cellRenderer: RecordingCellRenderer,
       },
       {
         headerName: 'Form Details',
