@@ -181,13 +181,6 @@ const handleUsernameClick = useCallback((username) => {
         cellClass: "font-mono text-slate-300",
       },
       {
-        headerName: "Follow_Up",
-        field: "dispo_FUC",
-        minWidth: 80,
-        maxWidth: 120,
-        cellClass: "font-mono text-slate-300",
-      },
-      {
         headerName: "Busy",
         field: "dispo_B",
         minWidth: 80,

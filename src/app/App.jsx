@@ -27,6 +27,7 @@ const WhatsAppLoginPage  = lazy(() => import('@/features/whatsapp-login/WhatsApp
 const WhatsAppSessionsPage = lazy(() => import('@/features/whatsapp-sessions/WhatsAppSessionsPage'));
 const WhatsAppAutomationPage = lazy(() => import('@/features/whatsapp-automation/WhatsAppAutomationPage'));
 const DoubleTickPage     = lazy(() => import('@/features/double-tick/DoubleTickPage'));
+const GsmStatusPage      = lazy(() => import('@/features/gsm-status/GsmStatusPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -54,6 +55,7 @@ function App() {
                 <Route path="/whatsapp-sessions" element={<WhatsAppSessionsPage />} />
                 <Route path="/whatsapp-automation" element={<WhatsAppAutomationPage />} />
                 <Route path="/double-tick"       element={<DoubleTickPage />} />
+                <Route path="/gsm-status"        element={<GsmStatusPage />} />
               </Route>
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>

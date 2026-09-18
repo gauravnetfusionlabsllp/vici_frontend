@@ -10,6 +10,7 @@ import {
   PhoneCall,
   Route,
   Send,
+  SignalHigh,
   ShieldCheck,
   Smartphone,
   Upload,
@@ -26,6 +27,7 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/manager-view",
   "/whatsapp-automation",
   "/double-tick",
+  "/gsm-status",
 ];
 
 /**
@@ -50,6 +52,7 @@ export function getNavGroups({ isAdmin, isWhatsappAdmin }) {
           { name: "Dashboard", path: "/", icon: LayoutDashboard, end: true },
           { name: "Agent Productivity", path: "/selective", icon: Gauge },
           { name: "Manager View", path: "/manager-view", icon: UserCog },
+          { name: "GSM Gateways", path: "/gsm-status", icon: SignalHigh },
         ],
       },
       {

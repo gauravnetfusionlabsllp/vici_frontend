@@ -68,8 +68,8 @@ const styleFor = (key) => GROUP_STYLE[key] || { icon: UserRound, tone: 'sky' };
 // Holds the section's shape while the first request is in flight; every number on
 // screen comes from the API, so these carry labels only.
 const PLACEHOLDER_GROUPS = [
-  { key: 'ib', label: 'IB', caption: 'Introducing brokers — form name carries “ib”' },
-  { key: 'non_ib', label: 'Non-IB', caption: 'Every other form' },
+  { key: 'ib', label: 'IB', caption: 'Introducing brokers — leads in the IB list' },
+  { key: 'non_ib', label: 'Non-IB', caption: 'Everything the general list works' },
 ];
 
 const fmtPct = (v) => `${Number(v ?? 0).toFixed(1).replace(/\.0$/, '')}%`;

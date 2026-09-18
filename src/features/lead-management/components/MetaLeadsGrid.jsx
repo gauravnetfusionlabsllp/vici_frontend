@@ -15,8 +15,10 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 const RawFieldsCellRenderer = (p) => <RawDataCell data={p.value} />;
 
-// IB = the lead sits in VICIdial's IB list (7022026); the server resolves it and sends
-// `is_ib` on the row.
+// IB = the lead's form name carries "ib" — VICIdial's address1, which is form, campaign,
+// ad set and source joined by '_'. The server resolves it and sends `is_ib` on the row
+// (resolve_ib_by_form in api/services/vicidial.py), the same rule the dashboard's two
+// META panels count on.
 // Mirrors the hot-leads grid: valueGetter keeps 'Yes'/'No'/'' so sort, filter and export work.
 const IbCellRenderer = (p) => (
   <BoolBadge value={p.value === 'Yes' ? true : p.value === 'No' ? false : null} />
@@ -168,12 +170,12 @@ export default function MetaLeadsGrid({ rows }) {
         colId: 'is_ib',
         width: 80,
         headerTooltip:
-          'Introducing broker — Yes when the lead was routed into the IB list (7022026), ' +
-          'No when it went to the general list (971585658633)',
+          'Introducing broker — Yes when the form name the lead is filed under carries ' +
+          '"ib" (VICIdial address1), No for every other form',
         valueGetter: (p) => ibLabel(p.data?.is_ib),
         tooltipValueGetter: (p) =>
-          p.data?.ib_source === 'routing'
-            ? 'Not in either VICIdial list yet — showing the list this lead will be pushed to'
+          p.data?.ib_source === 'form'
+            ? 'Not in VICIdial yet — reading the form name this lead will be pushed under'
             : null,
         cellClass: 'flex items-center',
         cellRenderer: IbCellRenderer,

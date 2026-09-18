@@ -18,6 +18,20 @@ function isValidPhone(p) {
   const digits = String(p || "").replace(/[^\d]/g, "");
   return digits.length >= 6;
 }
+
+// vicidial_list.entry_date arrives as an ISO timestamp through jsonable_encoder.
+// Rendered as "7 Sep 2026, 6:07 pm" — the time matters to an agent deciding how
+// fresh a lead is. Anything unparseable is shown as it came rather than as "—",
+// so a bad value is visible instead of looking like missing data.
+function formatEntryDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
 const MANUAL_DEFAULT_LEAD = {
   phone_number: "",
   first_name: "Manual",
@@ -315,7 +329,7 @@ function ContactDetails({inCallLogData}) {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-400">Entry Date</span>
-                      <span className="text-slate-100 font-semibold">{lead.entry_date ?? "—"}</span>
+                      <span className="text-slate-100 font-semibold">{formatEntryDate(lead.entry_date)}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -351,6 +365,12 @@ function ContactDetails({inCallLogData}) {
                             <span className="text-slate-100 font-semibold">{metaLead.ad_set_name}</span>
                           </div>
                         )}
+                        {metaLead.ad_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Ad</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.ad_name}</span>
+                          </div>
+                        )}
                         {metaLead.form_name?.trim() && (
                           <div className="flex items-center gap-2">
                             <span className="text-slate-400 text-sm">Form</span>
@@ -364,6 +384,37 @@ function ContactDetails({inCallLogData}) {
                             <RawDataCell data={metaLead.raw_fields} />
                           </div>
                         )}
+                      </>
+                    )}
+
+                    {/* No meta_leads row for this number — 186 leads in the two Meta
+                        lists since 13 Jul are in that state, most of them inserted
+                        straight into vicidial_list by something other than the Meta
+                        push. The form ANSWERS only exist in meta_leads and cannot be
+                        recovered, but the delivery chain is on the lead itself:
+                        address1 = form_adset_ad, address2 = campaign_adset_ad_source.
+                        Showing that beats showing nothing, and says plainly why the
+                        answers are absent rather than leaving the agent guessing. */}
+                    {isInCall && !isLoadingMeta && !metaLead && (lead.address1?.trim() || lead.address2?.trim()) && (
+                      <>
+                        {lead.address1?.trim() && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-slate-400 text-sm shrink-0">Form / Ad</span>
+                            <span className="text-slate-100 font-semibold break-all">{lead.address1}</span>
+                          </div>
+                        )}
+                        {lead.address2?.trim() && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-slate-400 text-sm shrink-0">Campaign</span>
+                            <span className="text-slate-100 font-semibold break-all">{lead.address2}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-amber-400/70" />
+                          <span className="text-amber-300/80 text-xs">
+                            No Meta form record for this number — the client's answers were never stored
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>

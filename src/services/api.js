@@ -22,6 +22,7 @@ export const dashboardApi = createApi({
     'WaHolidays',
     'WaAutomation',
     'DoubleTick',
+    'Gsm',
   ],
   endpoints: () => ({}),
 });
