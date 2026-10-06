@@ -6,6 +6,9 @@ import { selectIsAdmin, selectUser } from '@/features/auth/slices/authSlice';
 import { useGetHotMetaLeadsQuery, useGetHotMetaLeadNotesMappingQuery } from '@/services';
 import { SkeletonTable } from '@/shared/components/ui';
 
+import { STRINGEE, stringeeGradient } from '@/shared/lib/stringeeBrand';
+import { DISPOSITIONS } from '@/features/leads/constants';
+
 import HotLeadsGrid from './components/HotLeadsGrid';
 import ManageCustomColumnsModal from './components/ManageCustomColumnsModal';
 import LeadDetailModal from './components/LeadDetailModal';
@@ -22,12 +25,20 @@ function readInitialTheme() {
   }
 }
 
+// Stable identities so `?? fallback` doesn't hand useMemo a new object each render.
+const EMPTY_ROWS = [];
+const EMPTY_TOTALS = { total: null, stringee: null };
+
+const ALL_STATUSES = '__all__';
+const NO_STATUS = '__none__';
+const statusCode = (r) => (r.vici_call_status ?? '').toString().trim().toUpperCase() || NO_STATUS;
+
 export default function ReportingPage() {
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
 
   const {
-    data: rows = [],
+    data: hotLeads,
     isLoading,
     isFetching,
     isError,
@@ -36,11 +47,19 @@ export default function ReportingPage() {
     pollingInterval: 10000,
     skipPollingIfUnfocused: true,
   });
+  const rows = hotLeads?.rows ?? EMPTY_ROWS;
+  // Dials actually placed in the range, straight from vicidial_log and
+  // stringee_calls. Deliberately NOT derived from `rows`: the grid only holds
+  // calls that produced a recording worth analysing, so it undercounts dialling
+  // by a wide margin (176 Stringee attempts -> 57 analysed on 2026-10-02).
+  const dialTotals = hotLeads?.totals ?? EMPTY_TOTALS;
 
   // Admin-defined custom column definitions (global). Shown as extra grid columns for every row.
   const { data: formFields = [] } = useGetHotMetaLeadNotesMappingQuery();
 
   const [search, setSearch] = useState('');
+  const [stringeeOnly, setStringeeOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(ALL_STATUSES);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
@@ -50,7 +69,7 @@ export default function ReportingPage() {
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
-  const filtered = useMemo(() => {
+  const searched = useMemo(() => {
     if (!search) return rows;
     const q = search.toLowerCase();
     return rows.filter((r) =>
@@ -58,6 +77,38 @@ export default function ReportingPage() {
         .some((v) => (v || '').toString().toLowerCase().includes(q))
     );
   }, [rows, search]);
+
+  // Stringee-only view; the pill's count follows the search either way.
+  const stringeeCount = useMemo(() => searched.filter((r) => r.is_stringee).length, [searched]);
+  const dialerScoped = useMemo(
+    () => (stringeeOnly ? searched.filter((r) => r.is_stringee) : searched),
+    [searched, stringeeOnly],
+  );
+
+  // Call-disposition dropdown. Counts follow search + Stringee toggle, so each
+  // option says how many rows picking it will leave.
+  const statusOptions = useMemo(() => {
+    const counts = {};
+    dialerScoped.forEach((r) => {
+      const c = statusCode(r);
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    const known = DISPOSITIONS.map((d) => d.value);
+    // VICIdial statuses are configurable: codes not in DISPOSITIONS still get an option.
+    const extra = Object.keys(counts).filter((c) => c !== NO_STATUS && !known.includes(c)).sort();
+    return [
+      ...DISPOSITIONS.map((d) => ({ value: d.value, label: `${d.label} (${d.value})`, count: counts[d.value] || 0 })),
+      ...extra.map((c) => ({ value: c, label: c, count: counts[c] })),
+      { value: NO_STATUS, label: 'No disposition', count: counts[NO_STATUS] || 0 },
+    ];
+  }, [dialerScoped]);
+
+  const filtered = useMemo(
+    () => (statusFilter === ALL_STATUSES
+      ? dialerScoped
+      : dialerScoped.filter((r) => statusCode(r) === statusFilter)),
+    [dialerScoped, statusFilter],
+  );
 
   const stats = useMemo(
     () => ({
@@ -93,7 +144,23 @@ export default function ReportingPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <StatPill label="Total" value={stats.total} />
+            <StatPill
+              label="Dials"
+              value={dialTotals.total ?? '—'}
+              title="Calls placed through VICIdial in this date range (vicidial_log, excluding VDAD)."
+            />
+            <StringeeToggle
+              active={stringeeOnly}
+              count={dialTotals.stringee ?? 0}
+              shown={stringeeCount}
+              onToggle={() => setStringeeOnly((v) => !v)}
+            />
+            <StatPill
+              label="Shown"
+              value={stats.total}
+              title="Rows in the grid below — analysed calls only, after search and filters."
+            />
+            <StatusSelect value={statusFilter} options={statusOptions} total={dialerScoped.length} onChange={setStatusFilter} />
             <StatPill label="Registered" value={stats.registered} tone="active" />
             <StatPill label="Deposited" value={stats.deposited} tone="primary" />
             <div className="w-px h-4 bg-border mx-1" />
@@ -162,7 +229,11 @@ export default function ReportingPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground text-sm animate-fade-in">
-            {search ? 'No leads match your search.' : 'No leads found.'}
+            {statusFilter !== ALL_STATUSES
+              ? 'No calls with this disposition in this view.'
+              : stringeeOnly
+              ? 'No Stringee calls in this view.'
+              : search ? 'No leads match your search.' : 'No leads found.'}
           </div>
         ) : (
           <HotLeadsGrid
@@ -190,7 +261,7 @@ export default function ReportingPage() {
   );
 }
 
-function StatPill({ label, value, tone = 'default' }) {
+function StatPill({ label, value, tone = 'default', title }) {
   const toneCls = {
     default: 'text-foreground',
     active: 'text-[hsl(var(--status-active))]',
@@ -198,9 +269,65 @@ function StatPill({ label, value, tone = 'default' }) {
   }[tone];
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/40 px-2.5 py-0.5">
+    <span
+      title={title}
+      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/40 px-2.5 py-0.5"
+    >
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={`text-xs font-mono-nums font-semibold ${toneCls}`}>{value}</span>
     </span>
+  );
+}
+
+// Toggle beside Total: shows only calls carried by Stringee. Off, it reads like the
+// other pills with a Stringee-red dot; on, it fills with the Stringee gradient.
+function StringeeToggle({ active, count, shown, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      title={
+        `${count} Stringee dial attempts in this range (stringee_calls). `
+        + `${shown} of them produced an analysed call shown in the grid. `
+        + (active ? 'Click to show all calls.' : 'Click to show only those Stringee rows.')
+      }
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 transition-smooth ${
+        active ? 'text-white shadow-sm' : 'border-border bg-card/40 hover:bg-secondary'
+      }`}
+      style={active ? { background: stringeeGradient('E6', '90deg'), borderColor: STRINGEE.red } : undefined}
+    >
+      <span className="h-2 w-2 rounded-full" style={{ background: active ? '#fff' : STRINGEE.red }} />
+      <span className={`text-xs ${active ? 'text-white' : 'text-muted-foreground'}`}>Stringee</span>
+      <span
+        className="text-xs font-mono-nums font-semibold"
+        style={{ color: active ? '#fff' : STRINGEE.blue }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+// Call-disposition filter (the grid's "Call Disposition" column, vici_call_status).
+function StatusSelect({ value, options, total, onChange }) {
+  const active = value !== ALL_STATUSES;
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      title="Filter by call disposition"
+      className={`h-[22px] rounded-md border px-2 text-xs bg-card/40 focus:outline-none focus:border-primary/60 transition-smooth
+        [&>option]:bg-popover [&>option]:text-popover-foreground ${
+        active ? 'border-primary/60 text-primary' : 'border-border text-muted-foreground hover:bg-secondary'
+      }`}
+    >
+      <option value={ALL_STATUSES}>All dispositions · {total}</option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value} disabled={o.count === 0 && o.value !== value}>
+          {o.label} · {o.count}
+        </option>
+      ))}
+    </select>
   );
 }

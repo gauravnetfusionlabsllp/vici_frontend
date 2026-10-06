@@ -13,7 +13,9 @@ function clamp(value, min, max) {
 
 // Read-only expandable cell for long text (transcript, call summary). Shows a
 // short preview in the cell and the full, wrapped text in a portal popover.
-export default function ExpandableTextCell({ text, title = 'Details', theme }) {
+export default function ExpandableTextCell({
+  text, title = 'Details', theme, width = POPOVER_WIDTH, maxHeight = POPOVER_MAX_HEIGHT,
+}) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const triggerRef = useRef(null);
@@ -30,12 +32,12 @@ export default function ExpandableTextCell({ text, title = 'Details', theme }) {
     // (popover right edge = button right edge). Either way one edge stays locked
     // to the button and it opens directly below it.
     let left = rect.left;
-    if (left + POPOVER_WIDTH > window.innerWidth - 8) {
-      left = rect.right - POPOVER_WIDTH;
+    if (left + width > window.innerWidth - 8) {
+      left = rect.right - width;
     }
-    left = clamp(left, 8, Math.max(8, window.innerWidth - POPOVER_WIDTH - 8));
+    left = clamp(left, 8, Math.max(8, window.innerWidth - width - 8));
     const spaceBelow = window.innerHeight - rect.bottom;
-    const showAbove = spaceBelow < POPOVER_MAX_HEIGHT + GAP + 8 && rect.top > spaceBelow;
+    const showAbove = spaceBelow < maxHeight + GAP + 8 && rect.top > spaceBelow;
     // When opening above, anchor the popover's BOTTOM edge to the button so it
     // grows upward and stays glued to the button regardless of content height.
     if (showAbove) {
@@ -43,7 +45,7 @@ export default function ExpandableTextCell({ text, title = 'Details', theme }) {
     } else {
       setPos({ left, top: rect.bottom + GAP });
     }
-  }, []);
+  }, [width, maxHeight]);
 
   // Outside click + Escape close; reposition on resize/scroll.
   useEffect(() => {
@@ -103,8 +105,8 @@ export default function ExpandableTextCell({ text, title = 'Details', theme }) {
             position: 'fixed',
             ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
             left: pos.left,
-            width: POPOVER_WIDTH,
-            maxHeight: POPOVER_MAX_HEIGHT,
+            width,
+            maxHeight,
           }}
           className="rv-scope z-[100] rounded-lg border border-border bg-popover shadow-[0_18px_50px_-10px_rgba(0,0,0,0.7)] flex flex-col"
         >

@@ -16,11 +16,18 @@ export const {
     }),
     getHotMetaLeads: builder.query({
       query: () => '/reporting/hot-meta-leads-direct',
-      transformResponse: (res) => res?.data ?? [],
+      // { rows, totals } rather than a bare array. The grid lists ANALYSED
+      // calls (call_analysis); `totals` counts what was actually DIALLED
+      // (vicidial_log + stringee_calls), which is a much bigger number - see
+      // _dial_totals in api/routers/reporting.py. The header shows both.
+      transformResponse: (res) => ({
+        rows:   res?.data ?? [],
+        totals: res?.totals ?? { total: null, stringee: null },
+      }),
       providesTags: (result) =>
-        result
+        result?.rows?.length
           ? [
-              ...result.map((r) => ({ type: 'HotMetaLeads', id: r.lead_id })),
+              ...result.rows.map((r) => ({ type: 'HotMetaLeads', id: r.lead_id })),
               { type: 'HotMetaLeads', id: 'LIST' },
               'DATE_FILTERED',
             ]

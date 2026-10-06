@@ -66,7 +66,7 @@ export default function FilterBar({ draft, setDraft, options, optionsLoading, on
 
         {/* SET multi-selects */}
         <MultiSelectDropdown
-          label="Campaign" icon={Megaphone} options={options.campaign_name}
+          label="Ad Campaign" icon={Megaphone} options={options.campaign_name}
           selected={draft.campaign_name} onChange={(v) => set('campaign_name', v)} loading={optionsLoading}
         />
         <MultiSelectDropdown
@@ -93,12 +93,14 @@ export default function FilterBar({ draft, setDraft, options, optionsLoading, on
           </label>
           <select value={draft.agent_user} onChange={(e) => set('agent_user', e.target.value)} className={selectCls}>
             <option value="">All agents</option>
-            {options.agent_user.map((a) => <option key={a} value={a}>{a}</option>)}
+            {options.agent_user.map((a) => (
+              <option key={a} value={a}>{options.agent_labels?.[a] || a}</option>
+            ))}
           </select>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <Filter className="w-3 h-3" /> Call Outcome
+            <Filter className="w-3 h-3" /> Call Outcome (AI)
           </label>
           <select value={draft.call_outcome} onChange={(e) => set('call_outcome', e.target.value)} className={selectCls}>
             <option value="">All outcomes</option>

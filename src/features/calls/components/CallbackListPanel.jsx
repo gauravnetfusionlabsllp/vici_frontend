@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { useGetAgentWiseLeadQuery, useDialNextMutation } from "@/services";
 import { setCurrentLead } from "@/features/calls/slices/dialSlice";
-import { CALL_STATE, selectIsCallBusy, setCallState, setIsCallbackDial } from "@/features/calls/slices/callSlice";
+import { CALL_STATE, selectIsCallBusy, setCallState, setCurrentCallFromDial, setIsCallbackDial } from "@/features/calls/slices/callSlice";
 import { SkeletonAvatarRow } from "@/shared/components/ui";
 
 function safeText(v) {
@@ -118,6 +118,10 @@ export default function CallbackListPanel() {
           return;
         }
 
+        // Which dialer took the callback, exactly as DIAL NEXT records it. Without
+        // this a Stringee callback was never placed by the browser, and the poller
+        // kept watching the previous (finished) call.
+        dispatch(setCurrentCallFromDial(res));
         dispatch(setCurrentLead(lead ?? null));
         dispatch(setCallState(CALL_STATE.INCALL));
         dispatch(setIsCallbackDial(true))

@@ -10,6 +10,7 @@ import {
   selectUser,
 } from "@/features/auth/slices/authSlice";
 import { useAutoDial } from "@/features/calls/hooks/useAutoDial";
+import { useStringeeBrowserCall } from "@/features/calls/hooks/useStringeeBrowserCall";
 import NotificationBell from "@/features/whatsapp/NotificationBell";
 import BrandMark from "@/shared/components/BrandMark";
 
@@ -37,6 +38,8 @@ export default function TopBar() {
 
   // Mounted once for the whole app — owns the auto-dial countdown.
   const dial = useAutoDial();
+  // Places Stringee calls in this tab (browser dial mode). Mounted once, here.
+  useStringeeBrowserCall();
 
   const groups = useMemo(
     () => getNavGroups({ isAdmin, isWhatsappAdmin }),

@@ -70,7 +70,7 @@ export default function SummarySections({ data }) {
           </div>
         </SectionCard>
 
-        <SectionCard title="Agent Performance" icon={Users2}>
+        <SectionCard title="Agent Performance (who called)" icon={Users2}>
           {agents.length === 0 ? (
             <div className="py-6 text-center text-[11px] text-muted-foreground italic">No agent activity</div>
           ) : (
@@ -79,10 +79,11 @@ export default function SummarySections({ data }) {
                 <thead>
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     <th className="text-left font-medium py-1 px-1">Agent</th>
-                    <th className="text-right font-medium py-1 px-1">Asgn</th>
-                    <th className="text-right font-medium py-1 px-1">Updt</th>
-                    <th className="text-right font-medium py-1 px-1">Intr</th>
-                    <th className="text-right font-medium py-1 px-1">Acct</th>
+                    <th className="text-right font-medium py-1 px-1" title="Meta leads this agent called">Leads</th>
+                    <th className="text-right font-medium py-1 px-1" title="Had a real conversation">Spoke</th>
+                    <th className="text-right font-medium py-1 px-1" title="Saved a call result">Saved</th>
+                    <th className="text-right font-medium py-1 px-1" title="Marked interested">Intr</th>
+                    <th className="text-right font-medium py-1 px-1" title="Account opened">Acct</th>
                     <th className="text-right font-medium py-1 px-1">KYC</th>
                   </tr>
                 </thead>
@@ -91,6 +92,7 @@ export default function SummarySections({ data }) {
                     <tr key={a.agent} className="border-t border-border/40">
                       <td className="py-1 px-1 font-sans text-foreground/85 truncate max-w-[9rem]" title={a.agent}>{a.agent}</td>
                       <td className="py-1 px-1 text-right text-foreground/80">{a.assigned}</td>
+                      <td className="py-1 px-1 text-right text-foreground/80">{a.spoke}</td>
                       <td className="py-1 px-1 text-right text-foreground/80">{a.updated}</td>
                       <td className="py-1 px-1 text-right text-primary">{a.interested}</td>
                       <td className="py-1 px-1 text-right text-[hsl(var(--status-active))]">{a.accounts}</td>
@@ -103,7 +105,7 @@ export default function SummarySections({ data }) {
           )}
         </SectionCard>
 
-        <SectionCard title="Priority Actions" icon={AlertTriangle}>
+        <SectionCard title="Needs Attention" icon={AlertTriangle}>
           <div className="divide-y divide-border/40">
             {priority.map((p) => (
               <div key={p.action} className="flex items-center justify-between py-1.5">
@@ -145,16 +147,16 @@ export default function SummarySections({ data }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
         <MixCard title="Lead Type Mix" rows={leadTypeMix} />
         <MixCard title="Experience Mix" rows={expMix} />
-        <MixCard title="Communication Mix" rows={commMix} />
-        <MixCard title="Disposition Mix" rows={dispoMix} />
+        <MixCard title="How Clients Were Contacted" rows={commMix} />
+        <MixCard title="Call Results" rows={dispoMix} />
       </div>
 
       {/* Daily Lead Trend · Data Completion */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-        <SectionCard title="Daily Lead Trend" icon={LineChart} bodyClass="p-3">
+        <SectionCard title="Leads Called — by the Day They Came In" icon={LineChart} bodyClass="p-3">
           <DailyTrendChart data={data} />
         </SectionCard>
-        <SectionCard title="Data Completion" icon={ClipboardCheck}>
+        <SectionCard title="How Complete Are the Agents' Updates" icon={ClipboardCheck}>
           <DataCompletion data={data} />
         </SectionCard>
       </div>

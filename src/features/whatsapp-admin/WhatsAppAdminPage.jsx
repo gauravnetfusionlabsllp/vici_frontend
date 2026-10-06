@@ -64,7 +64,10 @@ export default function WhatsAppAdminPage() {
     skip: !waConnected, // don't even fetch history while WhatsApp is logged out
   });
   // Rich lead lookup: the whole hot-meta-leads feed (RTK-cached; reused from the reporting page).
-  const { data: leads = [], isFetching: leadsFetching } = useGetHotMetaLeadsQuery();
+  // getHotMetaLeads now returns { rows, totals }; this page only wants the rows.
+  // Memoised so the fallback does not hand the useMemo below a new array each render.
+  const { data: hotLeads, isFetching: leadsFetching } = useGetHotMetaLeadsQuery();
+  const leads = useMemo(() => hotLeads?.rows ?? [], [hotLeads]);
 
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState('');

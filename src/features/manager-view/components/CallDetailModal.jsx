@@ -9,7 +9,7 @@ import BoolBadge from '@/features/reporting/components/BoolBadge';
 import WhatsAppThread from '@/features/whatsapp/components/WhatsAppThread';
 import { selectMaskPii, selectUser } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
-import { dash, fmtDateTime, fmtDuration, toContactArray } from '../utils';
+import { callerOf, dash, fmtDateTime, fmtDuration, toContactArray } from '../utils';
 
 function fileSafe(v) {
   return String(v ?? '').trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '');
@@ -118,7 +118,7 @@ export default function CallDetailModal({ call, onClose }) {
 
   const handleDownload = async () => {
     if (!call.recording_link || downloading) return;
-    const agent = call.agent_name || call.agent_user;
+    const agent = callerOf(call);
     try {
       const objectUrl = await triggerDownload({
         recordingLink: call.recording_link,
@@ -197,11 +197,15 @@ export default function CallDetailModal({ call, onClose }) {
           <Group title="Call Quality" icon={Gauge}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <Field label="Call Date">{fmtDateTime(call.call_date)}</Field>
+              <Field label="Called By">{dash(callerOf(call))}</Field>
               <Field label="Duration">{fmtDuration(call.length_in_sec)}</Field>
-              <Field label="Outcome">{dash(call.call_outcome)}</Field>
+              <Field label="Call Result">{dash(call.call_result)}</Field>
+              <Field label="Lead Status">{dash(call.vici_status_name)}</Field>
+              <Field label="Outcome (AI)">{dash(call.call_outcome)}</Field>
               <Field label="Rating">{call.overall_rating != null ? `${call.overall_rating}/10` : '—'}</Field>
               <Field label="Stars"><Stars value={call.call_stars} /></Field>
-              <Field label="Dialer Status">{dash(call.vici_lead_status)}</Field>
+              <Field label="Lead Owner">{dash(call.lead_owner_name)}</Field>
+              <Field label="Times Called">{dash(call.times_called)}</Field>
               <SentimentBadge label="Agent Sentiment" value={call.agent_sentiment} />
               <SentimentBadge label="Client Sentiment" value={call.client_sentiment} />
             </div>
@@ -210,7 +214,7 @@ export default function CallDetailModal({ call, onClose }) {
           {/* Lead / Meta */}
           <Group title="Lead / Meta" icon={Megaphone}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Field label="Campaign">{dash(call.campaign_name)}</Field>
+              <Field label="Ad Campaign">{dash(call.campaign_name)}</Field>
               <Field label="Source">{dash(call.source)}</Field>
               <Field label="Form">{dash(call.form_name)}</Field>
               <Field label="Ad">{dash(call.ad_name)}</Field>
@@ -223,9 +227,10 @@ export default function CallDetailModal({ call, onClose }) {
           {/* Follow-up */}
           <Group title="Follow-up" icon={UserCheck}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
-              <Field label="Response">{dash(call.response)}</Field>
+              <Field label="Agent Notes">{dash(call.response)}</Field>
+              <Field label="Notes By">{dash(call.note_by)}</Field>
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Registered</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Account Opened</span>
                 <BoolBadge value={call.client_registered} />
               </div>
               <div className="flex flex-col gap-1">

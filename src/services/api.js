@@ -23,6 +23,7 @@ export const dashboardApi = createApi({
     'WaAutomation',
     'DoubleTick',
     'Gsm',
+    'StringeeAgents',
   ],
   endpoints: () => ({}),
 });

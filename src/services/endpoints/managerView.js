@@ -61,6 +61,8 @@ export const {
         adset_name: res?.adset_name ?? [],
         source: res?.source ?? [],
         agent_user: res?.agent_user ?? [],
+        // { '8003': 'Shubham Sharma' } — the dropdown shows names, filters by id.
+        agent_labels: res?.agent_labels ?? {},
         call_outcome: res?.call_outcome ?? [],
       }),
       providesTags: ['ManagerView'],

@@ -4,6 +4,7 @@ import {
   CheckCheck,
   Gauge,
   Inbox,
+  Link2,
   LayoutDashboard,
   Mail,
   MessageCircle,
@@ -28,6 +29,7 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/whatsapp-automation",
   "/double-tick",
   "/gsm-status",
+  "/stringee-agents",
 ];
 
 /**
@@ -53,6 +55,7 @@ export function getNavGroups({ isAdmin, isWhatsappAdmin }) {
           { name: "Agent Productivity", path: "/selective", icon: Gauge },
           { name: "Manager View", path: "/manager-view", icon: UserCog },
           { name: "GSM Gateways", path: "/gsm-status", icon: SignalHigh },
+          { name: "Agent Mapping", path: "/stringee-agents", icon: Link2 },
         ],
       },
       {

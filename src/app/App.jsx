@@ -28,6 +28,7 @@ const WhatsAppSessionsPage = lazy(() => import('@/features/whatsapp-sessions/Wha
 const WhatsAppAutomationPage = lazy(() => import('@/features/whatsapp-automation/WhatsAppAutomationPage'));
 const DoubleTickPage     = lazy(() => import('@/features/double-tick/DoubleTickPage'));
 const GsmStatusPage      = lazy(() => import('@/features/gsm-status/GsmStatusPage'));
+const StringeeAgentsPage = lazy(() => import('@/features/stringee-agents/StringeeAgentsPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -56,6 +57,7 @@ function App() {
                 <Route path="/whatsapp-automation" element={<WhatsAppAutomationPage />} />
                 <Route path="/double-tick"       element={<DoubleTickPage />} />
                 <Route path="/gsm-status"        element={<GsmStatusPage />} />
+                <Route path="/stringee-agents"   element={<StringeeAgentsPage />} />
               </Route>
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>

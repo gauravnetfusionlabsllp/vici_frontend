@@ -45,6 +45,9 @@ export function AgentsTable() {
       const statusClasses = {
         READY: " bg-emerald-500/25 text-emerald-300",
         INCALL: " bg-blue-500/20 text-blue-400",
+        // Stringee states (VICIdial shows these agents as PAUSED throughout).
+        DIALING: " bg-sky-500/20 text-sky-300",
+        DISPO: " bg-violet-500/20 text-violet-300",
         OFFLINE: " bg-slate-500/20 text-slate-400",
       };
 

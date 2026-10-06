@@ -81,7 +81,7 @@ export function SkeletonOverviewCard({ className }) {
   return (
     <div
       className={cn(
-        'h-[7rem] min-w-[12.5rem] border border-border rounded-lg bg-card/40 p-3 flex flex-col justify-between',
+        'h-[7rem] min-w-0 border border-border rounded-lg bg-card/40 p-3 flex flex-col justify-between',
         className,
       )}
     >

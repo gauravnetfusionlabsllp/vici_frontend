@@ -18,3 +18,4 @@ export * from './endpoints/waProxy';
 export * from './endpoints/whatsappAutomation';
 export * from './endpoints/doubleTick';
 export * from './endpoints/gsm';
+export * from './endpoints/stringeeAgents';

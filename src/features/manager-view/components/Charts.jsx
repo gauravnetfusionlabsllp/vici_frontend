@@ -11,8 +11,8 @@ import { palette, ink } from '../theme';
 import { SectionCard } from './Section';
 
 const SHORT_STAGE = {
-  'Total Leads': 'Total', 'Assigned': 'Asgn', 'Disposition Updated': 'Dispo',
-  'Interested': 'Intr', 'Account Opened': 'Acct', 'KYC Completed': 'KYC', 'FTD Received': 'FTD',
+  'Leads Called': 'Called', 'Spoke with Client': 'Spoke', 'Result Updated': 'Updated',
+  'Interested': 'Interested', 'Account Opened': 'Account', 'KYC Completed': 'KYC', 'FTD Received': 'FTD',
 };
 
 function ChartTooltip({ active, payload, label, ink: c }) {
@@ -83,7 +83,7 @@ export default function Charts({ data }) {
       </SectionCard>
 
       {/* Agent Workload & Updates — 2-series grouped horizontal bars */}
-      <SectionCard title="Agent Workload & Updates" icon={Users2} bodyClass="p-3 h-[240px]">
+      <SectionCard title="Leads Called vs Updated, by Agent" icon={Users2} bodyClass="p-3 h-[240px]">
         {workload.length === 0 ? <Empty /> : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={workload} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
@@ -93,8 +93,8 @@ export default function Charts({ data }) {
                 tickFormatter={(v) => (v.length > 12 ? `${v.slice(0, 11)}…` : v)} />
               <Tooltip content={tip} cursor={{ fill: c.cursor }} />
               <Legend iconType="square" formatter={(v) => <span className="text-[10px]" style={{ color: c.text }}>{v}</span>} />
-              <Bar name="Assigned" dataKey="assigned" fill={pal[0]} radius={[0, 3, 3, 0]} maxBarSize={12} />
-              <Bar name="Updated" dataKey="updated" fill={pal[1]} radius={[0, 3, 3, 0]} maxBarSize={12} />
+              <Bar name="Leads called" dataKey="assigned" fill={pal[0]} radius={[0, 3, 3, 0]} maxBarSize={12} />
+              <Bar name="Result saved" dataKey="updated" fill={pal[1]} radius={[0, 3, 3, 0]} maxBarSize={12} />
             </BarChart>
           </ResponsiveContainer>
         )}

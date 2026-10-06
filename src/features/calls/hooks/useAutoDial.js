@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 
 import { selectCampaingName, selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
 import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/features/calls/slices/dialSlice";
-import { CALL_STATE, selectIsCallBusy, setCallState } from "@/features/calls/slices/callSlice";
+import { CALL_STATE, selectIsCallBusy, setCallState, setCurrentCallFromDial } from "@/features/calls/slices/callSlice";
 import { useDialNextMutation } from "@/services";
 import { useToast } from "@/shared/hooks/useToast";
 
@@ -60,6 +60,9 @@ export function useAutoDial() {
         dispatch(setCallState(CALL_STATE.IDLE));
         return;
       }
+      // Which dialer took this call. "vicidial" for everything until
+      // STRINGEE_ENABLED is turned on server-side.
+      dispatch(setCurrentCallFromDial(res));
       dispatch(setCurrentLead(res?.details ?? null));
       dispatch(setCallState(CALL_STATE.INCALL));
       navigate("/call");

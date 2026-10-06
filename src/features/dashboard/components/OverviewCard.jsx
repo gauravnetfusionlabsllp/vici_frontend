@@ -90,7 +90,7 @@ function OverviewCardImpl({
 
   return (
     <div
-      className={`group relative h-[7rem] min-w-[12.5rem] flex flex-col overflow-hidden
+      className={`group relative h-[7rem] min-w-0 flex flex-col overflow-hidden
                   rounded-lg border ${tone.ring} bg-card/60 backdrop-blur-sm
                   shadow-[0_8px_30px_rgba(0,0,0,0.45)] ${tone.glow}
                   transition-smooth hover-lift hover:bg-card/80 hover:border-opacity-70
@@ -100,7 +100,7 @@ function OverviewCardImpl({
 
       <div className="relative p-3 flex flex-col justify-between h-full">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-300/90 whitespace-nowrap">
+          <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wider text-slate-300/90" title={label}>
             {label}
           </p>
           {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${tone.icon}`} aria-hidden="true" />}

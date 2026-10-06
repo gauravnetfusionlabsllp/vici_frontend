@@ -17,6 +17,7 @@ import { SkeletonTable, SkeletonChart, SkeletonStat } from '@/shared/components/
 
 import FilterBar from './components/FilterBar';
 import KpiBand from './components/KpiBand';
+import AdPerformance from './components/AdPerformance';
 import SummarySections from './components/SummarySections';
 import Charts from './components/Charts';
 import CombinedGrid from './components/CombinedGrid';
@@ -28,7 +29,7 @@ import { computeReferenceKpis, todayYMD } from './utils';
 import { MvThemeContext, MV_THEME_KEY, readInitialTheme } from './theme';
 
 const EMPTY_OPTIONS = {
-  form_name: [], campaign_name: [], ad_name: [], adset_name: [], source: [], agent_user: [], call_outcome: [],
+  form_name: [], campaign_name: [], ad_name: [], adset_name: [], source: [], agent_user: [], agent_labels: {}, call_outcome: [],
 };
 
 const makeDefaultFilters = () => ({
@@ -37,11 +38,12 @@ const makeDefaultFilters = () => ({
   agent_user: '', call_outcome: '', phone: '',
 });
 
+// `about` is shown under the tabs so nobody has to ask what a tab is for.
 const TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'calls', label: 'Call Analysis' },
-  { key: 'leads', label: 'Meta Leads' },
-  { key: 'notes', label: 'Hot Lead Notes' },
+  { key: 'overview', label: 'Overview', about: 'Calls made in the selected dates and what happened to the Meta ad leads behind them. Hover any number for what it counts.' },
+  { key: 'calls', label: 'Call Analysis', about: 'Every call with its AI review: who called, whether the client picked up, rating, summary and recording.' },
+  { key: 'leads', label: 'Meta Leads', about: 'Leads received from Meta ads in the selected dates, and whether each one has been called yet, by whom and with what result.' },
+  { key: 'notes', label: 'Hot Lead Notes', about: 'Follow-up notes agents saved on hot leads: how they contacted the client, the response, account and deposit.' },
 ];
 
 const LIMIT = 1000;
@@ -223,6 +225,10 @@ export default function ManagerViewPage() {
             ))}
           </div>
 
+          <p className="text-[11px] text-muted-foreground px-1">
+            {TABS.find((t) => t.key === activeTab)?.about}
+          </p>
+
           {/* Tab content */}
           {activeTab === 'overview' && (
             <QueryPanel
@@ -234,6 +240,7 @@ export default function ManagerViewPage() {
             >
               <div className="space-y-2.5">
                 <KpiBand kpis={kpis} />
+                <AdPerformance data={rows} />
                 <Charts data={rows} />
                 <SummarySections data={rows} />
                 <CombinedGrid rows={rows} onRowClick={setSelectedCall} />

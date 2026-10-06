@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Mail, MessageCircle, MessageSquare } from "lucide-react";
 import { useSubmitStatusMutation, useDialNextMutation, useSendMessageMutation } from "@/services";
-import {  CALL_STATE, selectIsCallBusy, setCallState ,selectIsCallbackDial} from "@/features/calls/slices/callSlice";
+import {  CALL_STATE, selectCallRouteParams, selectIsCallBusy, setCallState ,selectIsCallbackDial, setCurrentCallFromDial, clearCurrentCall} from "@/features/calls/slices/callSlice";
 import { clearCurrentLead, selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { selectMaskPii } from "@/features/auth/slices/authSlice";
 import { maskEmail } from "@/shared/lib/mask";
@@ -51,6 +51,8 @@ export default function CallDispositionPopup({ closeDispo, leadName = "Customer"
   const navigate = useNavigate();
   const { success, error, info } = useToast();
   const isCallBusy = useSelector(selectIsCallBusy);
+  // {} for a VICIdial call, { call_id } for a Stringee one.
+  const callRouteParams = useSelector(selectCallRouteParams);
 const isCallbackDialed = useSelector(selectIsCallbackDial)
   const [submitStatus, { isLoading: submitting }] = useSubmitStatusMutation();
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
@@ -121,6 +123,9 @@ const [sendMessage] = useSendMessageMutation();
     const payload = {
       status: selectedStatus.value,
       callback_comments: callbackComments.trim(),
+      // {} for a VICIdial call, so this stays the exact request it was.
+      // { call_id } dispositions the Stringee call instead.
+      ...callRouteParams,
     };
 
     if (selectedStatus.value === "CBR") {
@@ -144,6 +149,10 @@ const [sendMessage] = useSendMessageMutation();
     setCallbackComments("");
     setSendReminderEmail(false);
     dispatch(clearCurrentLead())
+    // The call is dispositioned - forget it. Left in place, a later dial that did
+    // not overwrite it inherited this finished Stringee call, and CallPage opened
+    // the disposition box again at once without the new number being dialled.
+    dispatch(clearCurrentCall());
     return true;
   };
 
@@ -173,6 +182,7 @@ const [sendMessage] = useSendMessageMutation();
         return;
       }
 
+      dispatch(setCurrentCallFromDial(res));
       dispatch(setCurrentLead(res?.details ?? null));
       dispatch(setCallState(CALL_STATE.INCALL));
       // navigate("/call");

@@ -286,7 +286,13 @@ function SummaryCellRenderer(params) {
 }
 
 function TranscriptCellRenderer(params) {
-  return <ExpandableTextCell text={params.value} title="Transcript" theme={params.context.theme} />;
+  // Wider and taller than the summary popover: it holds a whole two-way conversation.
+  return (
+    <ExpandableTextCell
+      text={params.value} title="Transcript" theme={params.context.theme}
+      width={520} maxHeight={460}
+    />
+  );
 }
 
 // 0–5 star rating, mirrors the agents-table renderer (partial fill via fillPercent).
@@ -669,7 +675,7 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
   const INTERACTIVE_COLS = useMemo(
     () => new Set([
       'how_contacted', 'response', 'client_registered', 'client_deposited',
-      'call_rating', 'recording_link', 'raw_data', 'call_summary', '__action',
+      'call_rating', 'recording_link', 'raw_data', 'call_summary', 'transcript_text', '__action',
     ]),
     [],
   );
@@ -880,16 +886,14 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         filter: false,
         cellRenderer: SummaryCellRenderer,
       },
-      
-      
-      // {
-      //   headerName: 'Transcript',
-      //   field: 'transcript_text',
-      //   width: 180,
-      //   sortable: false,
-      //   filter: false,
-      //   cellRenderer: TranscriptCellRenderer,
-      // },
+      {
+        headerName: 'Transcript',
+        field: 'transcript_text',
+        width: 180,
+        sortable: false,
+        filter: false,
+        cellRenderer: TranscriptCellRenderer,
+      },
       {
         headerName: 'First Status',
         field: 'first_status_change',
@@ -934,19 +938,27 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
   // inline dark theme; agThemeLight gives the navy-header + white-rows spreadsheet look).
   const agTheme = useMemo(() => gridTheme(theme), [theme]);
 
+  // One row per DIAL, keyed on vicidial_log.uniqueid. A lead called twice - or
+  // on both VICIdial and Stringee - has a row each, and a lead-keyed id would
+  // collide and silently drop all but one. call_id is only present once a call
+  // has been analysed, so it cannot be the key any more.
+  // (Edits stay keyed by lead_id in dirtySet/savedSet.)
   const getRowId = useCallback(
     (p) =>
-      p.data.lead_id != null
-        ? `lead-${p.data.lead_id}`
-        : `nolead-${p.data.phone ?? ''}-${p.data.call_date ?? ''}-${p.data.vici_call_email ?? p.data.email ?? ''}`,
+      p.data.uniqueid != null
+        ? `dial-${p.data.uniqueid}`
+        : p.data.call_id != null
+          ? `call-${p.data.call_id}`
+          : `nocall-${p.data.lead_id ?? ''}-${p.data.phone ?? ''}-${p.data.call_date ?? ''}`,
     [],
   );
 
-  // Flag "Meta Quotes" lead-source rows with a subtle theme tint (see index.css).
+  // Row tints (see index.css): "Meta Quotes" lead source, and calls carried by Stringee.
   const rowClassRules = useMemo(
     () => ({
       'meta-quotes-row': (p) =>
         (p.data?.vici_call_last_name ?? '').trim() === 'Meta Quotes',
+      'stringee-row': (p) => p.data?.is_stringee === true,
     }),
     [],
   );

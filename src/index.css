@@ -469,6 +469,22 @@ textarea:-webkit-autofill {
   background: hsl(var(--status-waiting) / 0.16) !important;
 }
 
+/* Calls carried by Stringee: Stringee brand gradient (blue → purple → orange, see
+   shared/lib/stringeeBrand.js) across the row, with a Stringee-red edge. Cells are
+   cleared so the row's gradient shows through them. */
+.ag-row.stringee-row {
+  background: linear-gradient(90deg, #2196F32E 0%, #673AB724 50%, #FF57221F 100%) !important;
+  box-shadow: inset 3px 0 0 #C50A0A;
+}
+
+.ag-row.stringee-row:hover {
+  background: linear-gradient(90deg, #2196F347 0%, #673AB738 50%, #FF572230 100%) !important;
+}
+
+.stringee-row .ag-cell {
+  background: transparent !important;
+}
+
 /* AG Grid tooltip — the grid theme uses a transparent backgroundColor, which the
    default .ag-tooltip inherits. Give it a solid popover surface so it's readable. */
 .ag-tooltip {

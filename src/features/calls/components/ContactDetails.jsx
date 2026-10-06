@@ -2,11 +2,13 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail, FileText } from "lucide-react";
 import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
-import { CALL_STATE, selectCallState, selectIsCallBusy, setCallState, setIsCallbackDial } from "@/features/calls/slices/callSlice";
+import { CALL_STATE, selectCallRouteParams, selectCallState, selectIsCallBusy, selectIsStringeeCall, setCallState, setCurrentCallFromDial, setIsCallbackDial } from "@/features/calls/slices/callSlice";
 import { useCallHangupMutation, useDialNextMutation, useGetMetaLeadByPhoneQuery } from "@/services";
 import RawDataCell from "@/features/reporting/components/RawDataCell";
 import { selectMaskPii } from "@/features/auth/slices/authSlice";
 import { maskEmail, maskPhone } from "@/shared/lib/mask";
+import { phoneCountry, flagUrl } from "@/shared/lib/phoneCountry";
+import { hangup as stringeeHangup } from "@/features/calls/lib/stringeePhone";
 function normalizePhone(raw) {
   if (!raw) return "";
   // keep + and digits
@@ -32,6 +34,28 @@ function formatEntryDate(value) {
     hour: "numeric", minute: "2-digit", hour12: true,
   });
 }
+function CountryChip({ country, boxed = false }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-slate-200",
+        boxed ? "rounded-lg border border-white/10 bg-white/5 px-2.5 py-2" : "",
+      ].join(" ")}
+      title={`${country.name} (+${country.callingCode})`}
+    >
+      <img
+        src={flagUrl(country.code)}
+        alt=""
+        width={20}
+        height={15}
+        className="rounded-[2px]"
+        onError={(e) => { e.currentTarget.style.display = "none"; }}
+      />
+      <span>{country.name}</span>
+    </span>
+  );
+}
+
 const MANUAL_DEFAULT_LEAD = {
   phone_number: "",
   first_name: "Manual",
@@ -101,6 +125,12 @@ function ContactDetails({inCallLogData}) {
   const maskPii = useSelector(selectMaskPii);
   const callState = useSelector(selectCallState);
   const isCallBusy = useSelector(selectIsCallBusy);
+  // {} for a VICIdial call, { call_id } for a Stringee one.
+  const callRouteParams = useSelector(selectCallRouteParams);
+  // Stringee sends no live ringing/answered status, so a Stringee call can be
+  // ended from the moment it is placed — no wait for the log, no 60s lock.
+  const isStringee = useSelector(selectIsStringeeCall);
+  const canEnd = isStringee || inCallLogData;
   const [callHangup, { isLoading: isHangingUp }] = useCallHangupMutation();
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
   const [notes, setNotes] = useState("");
@@ -110,7 +140,7 @@ function ContactDetails({inCallLogData}) {
   const isBusy = isHangingUp || callState === CALL_STATE.DIALING;
 
   // Lock END CALL for the first 60s after the call connects, with a countdown.
-  const isConnected = isInCall && inCallLogData;
+  const isConnected = isInCall && inCallLogData && !isStringee;
   const [lockSeconds, setLockSeconds] = useState(0);
 
   useEffect(() => {
@@ -171,6 +201,7 @@ function ContactDetails({inCallLogData}) {
         dispatch(setCallState(CALL_STATE.IDLE));
         return;
       }
+      dispatch(setCurrentCallFromDial(res));
       const safeLead = buildManualLead(res?.details, phone);
       dispatch(setCurrentLead(safeLead));
       dispatch(setIsCallbackDial(false)); // ✅ manual call
@@ -182,12 +213,17 @@ function ContactDetails({inCallLogData}) {
   }, [manualPhone, dialNext, dispatch, lead]);
 
   const handleEndCall = async () => {
-    if (!isInCall && !inCallLogData) return;
+    if (!isInCall && !canEnd) return;
     if (isLocked) return; // ✅ honor the 60s post-connect lock
 
     dispatch(setCallState(CALL_STATE.ENDING)); // ✅ keep log polling ON
     try {
-      await (callHangup().unwrap?.() ?? callHangup());
+      // {} for VICIdial, { call_id } for Stringee.
+      const hangupArgs = callRouteParams;
+      // Browser-placed Stringee call: drop it in this tab first. A no-op for
+      // every other call.
+      if (isStringee) await stringeeHangup();
+      await (callHangup(hangupArgs).unwrap?.() ?? callHangup(hangupArgs));
       // DO NOT set IDLE here. Wait for log uniqueid -> dispo popup
     } catch (e) {
       dispatch(setCallState(CALL_STATE.INCALL));
@@ -195,6 +231,8 @@ function ContactDetails({inCallLogData}) {
     }
   };
   const manualHasNumber = isValidPhone(normalizePhone(manualPhone));
+  const manualCountry = useMemo(() => phoneCountry(manualPhone), [manualPhone]);
+  const leadCountry = useMemo(() => phoneCountry(lead?.phone_number), [lead?.phone_number]);
   return (
     <div
       className="relative overflow-hidden rounded-2xl border border-white/10
@@ -212,6 +250,7 @@ function ContactDetails({inCallLogData}) {
         </div>
 
         <div className="flex items-center gap-2">
+          {manualCountry && <CountryChip country={manualCountry} boxed />}
           <input
             value={manualPhone}
             onChange={(e) => setManualPhone(e.target.value)}
@@ -314,6 +353,7 @@ function ContactDetails({inCallLogData}) {
                       <span className="text-slate-100 font-semibold font-mono-nums tracking-wide">
                         {lead.phone_number ? (maskPii ? maskPhone(lead.phone_number) : lead.phone_number) : "—"}
                       </span>
+                      {leadCountry && <CountryChip country={leadCountry} />}
                     </div>
 
                     {lead.email?.trim() && (
@@ -436,7 +476,7 @@ function ContactDetails({inCallLogData}) {
               {/* END CALL (real logic) */}
               <button
                 onClick={handleEndCall}
-                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !inCallLogData || isLocked}
+                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !canEnd || isLocked}
                 className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]
                   ${
                     isLocked

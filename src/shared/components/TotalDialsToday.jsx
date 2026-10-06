@@ -110,7 +110,11 @@ const TotalDialsToday = ({ overview }) => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 stagger-children">
+        {/* Columns follow the CARD's width, not the screen's: on the dashboard this
+            card is only ~2/3 of the page, so xl:grid-cols-4 at a 1280px screen
+            (Nest Hub Max) squeezed four 200px-minimum tiles into ~650px and the
+            whole page scrolled sideways. As many 9.5rem tiles as fit, max 4. */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(max(9.5rem,calc((100%_-_1.5rem)/4)),1fr))] gap-2 stagger-children">
           {isBusy
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonOverviewCard key={i} />)
             : kpis.map(({ label, value, icon, trend, color }) => (

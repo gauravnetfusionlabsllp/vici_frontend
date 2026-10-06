@@ -53,21 +53,45 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1' || v === 'yes' || v === 'Yes';
 
-const isInterested = (r) =>
-  /interest/i.test(r.response || '') || String(r.vici_lead_status || '').toUpperCase() === 'INTR';
-
-const isNotInterested = (r) =>
-  /not\s*interest/i.test(r.response || '') || ['NI', 'DNC'].includes(String(r.vici_lead_status || '').toUpperCase());
-
-const hasDisposition = (r) => !!(r.vici_lead_status || r.response || r.last_status_change);
-
-const isCallback = (r) =>
-  /call\s*back|callback/i.test(r.response || '') || ['CBR', 'CBHOLD', 'CALLBK'].includes(String(r.vici_lead_status || '').toUpperCase());
-
-const isRNR = (r) => {
-  const st = String(r.vici_lead_status || '').toUpperCase();
-  return /rnr|no\s*answer|ring/i.test(r.response || '') || ['RNR', 'NA', 'N', 'A', 'B'].includes(st);
+// VICIdial status codes, as this dialer actually uses them (vicidial_statuses +
+// vicidial_campaign_statuses). Interested is 'IN' — the old check for 'INTR' never matched.
+const STATUS = {
+  interested: ['IN', 'SALE', 'CON'],
+  notInterested: ['NI', 'DNC', 'DEC', 'NP'],
+  callback: ['CBR', 'CBHOLD', 'CALLBK', 'FUC'],
+  noAnswer: ['N', 'NA', 'B', 'AB', 'AA', 'AM', 'AL'],
+  invalid: ['INVN', 'WN', 'DC', 'D', 'ADC', 'ADCT'],
+  // Set by the dialer itself, not chosen by an agent — the agent has not given the lead a
+  // result yet. Counting these made "Result Saved" equal every lead called.
+  undispositioned: [
+    'NEW', 'INCALL', 'QUEUE', 'DISPO', 'AB', 'AA', 'NA', 'AL', 'AM', 'AFAX', 'ADC', 'ADCT',
+    'DROP', 'PDROP', 'XDROP', 'ERI', 'LRERR', 'IQNANQ', 'TIMEOT',
+  ],
 };
+const statusIn = (r, list) => list.includes(String(r.vici_lead_status || '').toUpperCase());
+
+const saysNotInterested = (r) => /not\s*interest/i.test(r.response || '');
+
+// "not interested" contains "interest" — it used to count as Interested AND Not Interested.
+const isInterested = (r) =>
+  statusIn(r, STATUS.interested) || (/interest/i.test(r.response || '') && !saysNotInterested(r));
+
+const isNotInterested = (r) => saysNotInterested(r) || statusIn(r, STATUS.notInterested);
+
+// Any status counted before, including NEW — a lead nobody had touched showed as "updated".
+const hasDisposition = (r) =>
+  !!(r.response || r.last_status_change)
+  || (!!r.vici_lead_status && !statusIn(r, STATUS.undispositioned));
+
+const isCallback = (r) => /call\s*back|callback/i.test(r.response || '') || statusIn(r, STATUS.callback);
+
+const isRNR = (r) => /rnr|no\s*answer|ring/i.test(r.response || '') || statusIn(r, STATUS.noAnswer);
+
+// A real conversation happened on this call (the analyser heard both sides talk).
+const spokeOnCall = (r) => r.analysis_status === 'successful';
+
+// Who made the call. agent_name on the row is the follow-up NOTE's author, not the caller.
+export const callerOf = (r) => r.caller_name || r.agent_user || null;
 
 // Best-effort KYC detection from the free-form custom_fields (e.g. { kyc_status: "Completed" }).
 const kycDone = (r) => {
@@ -98,11 +122,20 @@ function dedupeLeads(data) {
       map.set(r.lead_id, {
         lead_id: r.lead_id,
         lead_created_at: r.lead_created_at || null,
-        agent_user: r.agent_user || null,
-        agent_name: r.agent_name || null,
+        // Assigned = the lead has an owner in the dialer. Every call row has a caller,
+        // so "assigned by caller" made Unassigned always 0.
+        owner: r.lead_owner_name || r.lead_owner || null,
+        caller: callerOf(r),
         campaign_name: r.campaign_name || null,
+        ad_set_name: r.ad_set_name || null,
+        ad_name: r.ad_name || null,
+        form_name: r.form_name || null,
+        source: r.source || null,
+        spoke: spokeOnCall(r),
+        invalid: statusIn(r, STATUS.invalid) || /invalid|wrong\s*number/i.test(r.response || ''),
         response: r.response || null,
         vici_lead_status: r.vici_lead_status || null,
+        vici_status_name: r.vici_status_name || null,
         registered: truthy(r.client_registered),
         deposited: truthy(r.client_deposited),
         interested: isInterested(r),
@@ -117,8 +150,10 @@ function dedupeLeads(data) {
     } else {
       // Any positive signal across the lead's calls counts.
       prev.lead_created_at = prev.lead_created_at || r.lead_created_at || null;
-      prev.agent_user = prev.agent_user || r.agent_user || null;
-      prev.agent_name = prev.agent_name || r.agent_name || null;
+      prev.owner = prev.owner || r.lead_owner_name || r.lead_owner || null;
+      prev.caller = prev.caller || callerOf(r);
+      prev.spoke = prev.spoke || spokeOnCall(r);
+      prev.invalid = prev.invalid || statusIn(r, STATUS.invalid) || /invalid|wrong\s*number/i.test(r.response || '');
       prev.registered = prev.registered || truthy(r.client_registered);
       prev.deposited = prev.deposited || truthy(r.client_deposited);
       prev.interested = prev.interested || isInterested(r);
@@ -129,6 +164,7 @@ function dedupeLeads(data) {
       prev.kyc = prev.kyc || kycDone(r);
       prev.response = prev.response || r.response || null;
       prev.vici_lead_status = prev.vici_lead_status || r.vici_lead_status || null;
+      prev.vici_status_name = prev.vici_status_name || r.vici_status_name || null;
       prev.how_contacted = Array.from(new Set([...prev.how_contacted, ...toContactArray(r.how_contacted)]));
       prev.raw = { ...prev.raw, ...(r.raw_data || {}), ...(r.custom_fields || {}) };
     }
@@ -161,9 +197,9 @@ export function computeLeadFunnel(data = []) {
   const leads = dedupeLeads(data);
   const total = leads.length;
   const rows = [
-    ['Total Leads', total],
-    ['Assigned', leads.filter((l) => l.agent_user).length],
-    ['Disposition Updated', leads.filter((l) => l.disposition).length],
+    ['Leads Called', total],
+    ['Spoke with Client', leads.filter((l) => l.spoke).length],
+    ['Result Updated', leads.filter((l) => l.disposition).length],
     ['Interested', leads.filter((l) => l.interested).length],
     ['Account Opened', leads.filter((l) => l.registered).length],
     ['KYC Completed', leads.filter((l) => l.kyc).length],
@@ -177,10 +213,12 @@ export function computeAgentPerformance(data = []) {
   const leads = dedupeLeads(data);
   const map = new Map();
   for (const l of leads) {
-    const key = l.agent_name || l.agent_user;
+    // Credited to the agent who CALLED (the newest call's caller), by name.
+    const key = l.caller;
     if (!key) continue;
-    const a = map.get(key) || { agent: key, assigned: 0, updated: 0, interested: 0, accounts: 0, kyc: 0 };
+    const a = map.get(key) || { agent: key, assigned: 0, spoke: 0, updated: 0, interested: 0, accounts: 0, kyc: 0 };
     a.assigned += 1;
+    if (l.spoke) a.spoke += 1;
     if (l.disposition) a.updated += 1;
     if (l.interested) a.interested += 1;
     if (l.registered) a.accounts += 1;
@@ -194,10 +232,10 @@ export function computeAgentPerformance(data = []) {
 export function computePriorityActions(data = []) {
   const leads = dedupeLeads(data);
   return [
-    { action: 'Unassigned Leads', count: leads.filter((l) => !l.agent_user).length },
-    { action: 'No Disposition', count: leads.filter((l) => l.agent_user && !l.disposition).length },
-    { action: 'Callbacks Required', count: leads.filter((l) => l.callback).length },
-    { action: 'RNR — Retry Contact', count: leads.filter((l) => l.rnr).length },
+    { action: 'No agent owns the lead', count: leads.filter((l) => !l.owner).length },
+    { action: 'Called, but no result saved', count: leads.filter((l) => !l.disposition).length },
+    { action: 'Callback promised', count: leads.filter((l) => l.callback).length },
+    { action: 'Did not pick up — try again', count: leads.filter((l) => l.rnr && !l.spoke).length },
     { action: 'Account Open, KYC Pending', count: leads.filter((l) => l.registered && !l.kyc).length },
     { action: 'KYC Complete, FTD Pending', count: leads.filter((l) => l.kyc && !l.deposited).length },
   ];
@@ -216,7 +254,7 @@ function statusOf(l) {
   if (l.notInterested) return 'Lost';
   if (l.interested) return 'Qualified';
   if (l.disposition) return 'Contacted';
-  if (l.agent_user) return 'Assigned';
+  if (l.owner) return 'Assigned';
   return 'New / Unworked';
 }
 
@@ -262,7 +300,8 @@ export function computeCommunicationMix(data = []) {
 
 export function computeDispositionMix(data = []) {
   const leads = dedupeLeads(data);
-  return tally(leads.map((l) => l.response || l.vici_lead_status));
+  // The dialer result in words ("Not Interested"), not its code ("NI").
+  return tally(leads.map((l) => l.vici_status_name || l.vici_lead_status || l.response));
 }
 
 // Free-form Meta-form fields (Lead Type / Experience) live in raw_data / custom_fields under
@@ -328,8 +367,6 @@ export function computeCampaignMix(data = []) {
 
 const hasRaw = (l, candidates) => pickRawValue(l.raw, candidates) != null;
 const leadWhatsApp = (l) => l.how_contacted.some((c) => /whats\s*app/i.test(c));
-const leadInvalid = (l) =>
-  /invalid/i.test(l.response || '') || ['INVN', 'WN'].includes(String(l.vici_lead_status || '').toUpperCase());
 
 // Sum numeric values found under any matching raw/custom key across leads (best-effort → 0).
 function sumRawNumeric(leads, candidates) {
@@ -349,8 +386,8 @@ export const fmtAmount = (n) =>
 // Data-Completion field spec — each test runs over a deduped lead record. Free-form fields read
 // raw_data/custom_fields via RAW_KEY_MAP candidates and degrade to "incomplete" when absent.
 export const COMPLETION_FIELDS = [
-  { field: 'Agent Name', test: (l) => !!(l.agent_user || l.agent_name) },
-  { field: 'Disposition', test: (l) => !!l.vici_lead_status },
+  { field: 'Agent Name', test: (l) => !!(l.owner || l.caller) },
+  { field: 'Disposition', test: (l) => l.disposition },
   { field: 'Interest Level', test: (l) => !!l.response || l.interested },
   { field: 'IB / Retail Classification', test: (l) => hasRaw(l, RAW_KEY_MAP.leadType) },
   { field: 'Next Action', test: (l) => hasRaw(l, RAW_KEY_MAP.nextAction) },
@@ -385,8 +422,10 @@ export function computeReferenceKpis(data = []) {
 
   return {
     totalLeads: total,
-    assigned: leads.filter((l) => l.agent_user).length,
-    unassigned: leads.filter((l) => !l.agent_user).length,
+    assigned: leads.filter((l) => l.owner).length,
+    unassigned: leads.filter((l) => !l.owner).length,
+    spoke: leads.filter((l) => l.spoke).length,
+    notInterested: leads.filter((l) => l.notInterested).length,
     dispositionUpdated: leads.filter((l) => l.disposition).length,
     interested: leads.filter((l) => l.interested).length,
     callbacks: leads.filter((l) => l.callback).length,
@@ -395,8 +434,8 @@ export function computeReferenceKpis(data = []) {
     ftdReceived: leads.filter((l) => l.deposited).length,
     totalFtdAmount: sumRawNumeric(leads, RAW_KEY_MAP.ftdAmount),
     redepositAmount: sumRawNumeric(leads, RAW_KEY_MAP.redeposit),
-    rnr: leads.filter((l) => l.rnr).length,
-    invalidNumbers: leads.filter(leadInvalid).length,
+    rnr: leads.filter((l) => l.rnr && !l.spoke).length,
+    invalidNumbers: leads.filter((l) => l.invalid).length,
     whatsappPreference: leads.filter(leadWhatsApp).length,
     salesUpdateCompletion,
     // carried from Phase 1 so call quality isn't lost
@@ -427,4 +466,44 @@ export function computeDailyLeadTrend(data = []) {
   return Array.from(map.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([day, value]) => ({ name: format(parseLocal(day), 'dd MMM'), value }));
+}
+
+// ────────────────────────── Ad Performance (marketing) ──────────────────────────
+// What happened to the leads each Meta campaign / ad set / ad / form brought in, so marketing
+// can judge an ad by its outcomes without leaving the page. One row per distinct lead.
+export const AD_GROUPS = [
+  { key: 'campaign_name', label: 'Campaign' },
+  { key: 'ad_set_name', label: 'Ad Set' },
+  { key: 'ad_name', label: 'Ad' },
+  { key: 'form_name', label: 'Form' },
+];
+
+export function computeAdPerformance(data = [], groupKey = 'campaign_name') {
+  const leads = dedupeLeads(data);
+  const map = new Map();
+  for (const l of leads) {
+    // Leads whose Meta record carries no name for this level (organic, uploaded, older rows).
+    const key = l[groupKey] || 'Not recorded';
+    const a = map.get(key) || {
+      name: key, leads: 0, spoke: 0, interested: 0, notInterested: 0,
+      callback: 0, noAnswer: 0, invalid: 0, accounts: 0, ftd: 0,
+    };
+    a.leads += 1;
+    if (l.spoke) a.spoke += 1;
+    if (l.interested) a.interested += 1;
+    if (l.notInterested) a.notInterested += 1;
+    if (l.callback) a.callback += 1;
+    if (l.rnr && !l.spoke) a.noAnswer += 1;
+    if (l.invalid) a.invalid += 1;
+    if (l.registered) a.accounts += 1;
+    if (l.deposited) a.ftd += 1;
+    map.set(key, a);
+  }
+  return Array.from(map.values())
+    .map((a) => ({
+      ...a,
+      reachRate: round1(pct(a.spoke, a.leads)),
+      interestRate: round1(pct(a.interested, a.leads)),
+    }))
+    .sort((x, y) => y.leads - x.leads);
 }
