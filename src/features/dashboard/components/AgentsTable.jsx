@@ -1,7 +1,7 @@
-import { Users } from "lucide-react";
+import { Megaphone, Users } from "lucide-react";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { dashboardApi, useGetAgentsProductivityQuery } from "@/services";
 import { resetUsername, selectUsername, setUsername } from "@/features/dashboard/slices/campaignAndUsernameFilterSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -9,9 +9,25 @@ import { useDispatch, useSelector } from "react-redux";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+// Login and pause time stay the whole session under every filter: they are per
+// agent, not per call, so they cannot be split by lead.
+const LEAD_FILTERS = [
+  { value: "all",  label: "All",      title: "Every call" },
+  { value: "meta", label: "Meta",     title: "Calls to any Meta lead, including redials of older leads" },
+  { value: "new",  label: "New Meta", title: "Only Meta leads that arrived in the selected dates (matches the Total / Called Meta Leads cards)" },
+];
+// The query arg each filter sends: /agentsproductivity?meta=all|new, or nothing.
+const LEAD_FILTER_ARG = { all: undefined, meta: { meta: "all" }, new: { meta: "new" } };
+
 export function AgentsTable() {
-  const { data = [] } =
-    useGetAgentsProductivityQuery(undefined, {
+  // Lead filter. "meta": calls to any Meta lead (incl. redials of older ones);
+  // "new": only Meta leads that arrived in the selected dates - the cohort the
+  // Total / Called Meta Leads cards count. Calls, connects, dispositions, talk time
+  // and ratings follow it; login / pause time stays the whole session (it is per
+  // agent, not per call, so it cannot be split by lead).
+  const [leadFilter, setLeadFilter] = useState("all");
+  const { data = [], isFetching } =
+    useGetAgentsProductivityQuery(LEAD_FILTER_ARG[leadFilter], {
       pollingInterval: 30000,
       skipPollingIfUnfocused: true,
     });
@@ -286,6 +302,32 @@ const handleUsernameClick = useCallback((username) => {
           <Users className="w-4 h-4 text-emerald-400" />
           Agents Productivity
         </h3>
+
+        <div
+          role="group"
+          aria-label="Lead filter"
+          className="ml-auto mr-2 inline-flex items-center rounded-full border border-border bg-secondary/40 p-0.5 text-xs"
+        >
+          <Megaphone
+            className={`w-3 h-3 mx-1.5 text-muted-foreground ${isFetching && leadFilter !== "all" ? "animate-pulse" : ""}`}
+          />
+          {LEAD_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setLeadFilter(f.value)}
+              aria-pressed={leadFilter === f.value}
+              title={f.title}
+              className={`rounded-full px-2.5 py-0.5 font-medium transition-colors ${
+                leadFilter === f.value
+                  ? "bg-sky-500/20 text-sky-300"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
         {activeUsername && (
                   <div className="flex items-center gap-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded-full">

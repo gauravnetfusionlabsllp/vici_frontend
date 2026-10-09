@@ -43,7 +43,10 @@ export const {
       providesTags: ['Dashboard'],
     }),
     getAgentsProductivity: builder.query({
-      query: () => '/agentsproductivity',
+      // { meta: 'all' | 'new' } = the panel's lead filter (server side,
+      // /agentsproductivity?meta=...): calls to any Meta lead, or only to Meta leads
+      // that arrived in the selected dates. No arg = every call.
+      query: (arg) => (arg?.meta ? `/agentsproductivity?meta=${arg.meta}` : '/agentsproductivity'),
       providesTags: ['Dashboard', 'DATE_FILTERED', 'CAMPAIGN_FILTERED'],
       extraOptions: { maxRetries: 3, withDate: true, withCampaign: true },
     }),

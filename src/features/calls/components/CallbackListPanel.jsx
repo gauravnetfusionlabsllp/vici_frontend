@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { dialErrorMessage } from "@/features/calls/lib/dialError";
 import { Phone, Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -125,9 +126,9 @@ export default function CallbackListPanel() {
         dispatch(setCurrentLead(lead ?? null));
         dispatch(setCallState(CALL_STATE.INCALL));
         dispatch(setIsCallbackDial(true))
-      } catch {
+      } catch (e) {
         dispatch(setCallState(CALL_STATE.IDLE));
-        alert("Failed to dial. Please try again.");
+        alert(dialErrorMessage(e, "Failed to dial. Please try again."));
       }
     },
     [dialNext, dispatch]

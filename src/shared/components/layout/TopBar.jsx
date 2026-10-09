@@ -11,6 +11,7 @@ import {
 } from "@/features/auth/slices/authSlice";
 import { useAutoDial } from "@/features/calls/hooks/useAutoDial";
 import { useStringeeBrowserCall } from "@/features/calls/hooks/useStringeeBrowserCall";
+import { useStringeeHealth } from "@/features/calls/hooks/useStringeeHealth";
 import NotificationBell from "@/features/whatsapp/NotificationBell";
 import BrandMark from "@/shared/components/BrandMark";
 
@@ -40,6 +41,8 @@ export default function TopBar() {
   const dial = useAutoDial();
   // Places Stringee calls in this tab (browser dial mode). Mounted once, here.
   useStringeeBrowserCall();
+  // Stringee up/down for the banner, and reconnects while it is down. Once, here.
+  useStringeeHealth();
 
   const groups = useMemo(
     () => getNavGroups({ isAdmin, isWhatsappAdmin }),

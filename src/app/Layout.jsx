@@ -5,6 +5,7 @@ import { selectUser } from "@/features/auth/slices/authSlice";
 import WhatsappNotifier from "@/features/whatsapp/WhatsappNotifier";
 import Sidebar from "@/shared/components/layout/Sidebar";
 import TopBar from "@/shared/components/layout/TopBar";
+import StringeeStatusBanner from "@/features/calls/components/StringeeStatusBanner";
 import { useSidebarCollapsed } from "@/shared/components/layout/useSidebarCollapsed";
 
 export function Layout({ children }) {
@@ -51,6 +52,7 @@ export function Layout({ children }) {
 
       <div className={`transition-[padding] duration-200 ${contentOffset}`}>
         <TopBar />
+        <StringeeStatusBanner />
         <main className="min-h-full px-4 py-4">{children}</main>
       </div>
     </div>

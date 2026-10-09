@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useMemo, useState } from "react";
+import { dialErrorMessage } from "@/features/calls/lib/dialError";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -191,7 +192,7 @@ const [sendMessage] = useSendMessageMutation();
     } catch (e) {
       console.error(e);
       dispatch(setCallState(CALL_STATE.IDLE));
-      alert("Failed to wrap & dial next.");
+      alert(dialErrorMessage(e, "Failed to wrap & dial next."));
     }
   };
 

@@ -34,6 +34,36 @@ function formatDate(d) {
   });
 }
 
+// Server time of the last dial, shown on redial rows ("2026-10-07T12:26:18").
+function formatCallTime(d) {
+  if (!d) return "—";
+  const date = new Date(String(d));
+  if (Number.isNaN(date.getTime())) return safeText(d);
+  return date.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// queue_type comes from /clients_for_agent: "new" = never dialled, entered in the
+// last 7 days (dialled first); "retry" = this agent's redial queue.
+const QUEUE_STYLE = {
+  new: {
+    row: "border-l-2 border-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20",
+    avatar: "bg-emerald-500/25 text-emerald-200",
+    badge: "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40",
+    label: "NEW",
+  },
+  retry: {
+    row: "border-l-2 border-amber-400/60 hover:bg-white/10",
+    avatar: "bg-white/10 text-white",
+    badge: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30",
+    label: "REDIAL",
+  },
+};
+
 const HOT_METAL_CAMPAIGN = "HotMetaleads";
 
 export default function AgentLeadsPanel() {
@@ -127,8 +157,13 @@ export default function AgentLeadsPanel() {
               </select>
             )}
 
-            <div className="text-xs text-slate-400 shrink-0">
-              {safeText(data?.total_records)} total
+            <div className="flex items-center gap-1.5 text-xs shrink-0">
+              <span className="rounded px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300">
+                {data?.queue_summary?.new ?? 0} new
+              </span>
+              <span className="rounded px-1.5 py-0.5 bg-amber-500/15 text-amber-300">
+                {data?.queue_summary?.retry ?? 0} redial
+              </span>
             </div>
           </div>
         </div>
@@ -148,18 +183,26 @@ export default function AgentLeadsPanel() {
               .filter(Boolean)
               .join(" ");
 
+            const isNew = lead?.queue_type === "new";
+            const style = isNew ? QUEUE_STYLE.new : QUEUE_STYLE.retry;
+
             return (
               <div
                 key={lead?.lead_id}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 transition-smooth"
+                className={`flex items-center gap-3 px-3 py-2 transition-smooth ${style.row}`}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-semibold text-white">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${style.avatar}`}>
                   {initials(lead?.first_name, lead?.last_name)}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-white">
-                    {fullName || "Unknown Lead"}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-medium text-white">
+                      {fullName || "Unknown Lead"}
+                    </span>
+                    <span className={`shrink-0 rounded px-1.5 py-[1px] text-[10px] font-semibold tracking-wide ${style.badge}`}>
+                      {style.label}
+                    </span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                     <span>{safeText(lead?.city)}</span>
@@ -172,7 +215,11 @@ export default function AgentLeadsPanel() {
 
                 <div className="shrink-0 text-right text-xs text-slate-400">
                   <div>{formatDate(lead?.entry_date)}</div>
-                  <div className="text-slate-500">List {safeText(lead?.list_id)}</div>
+                  <div className="text-slate-500">
+                    {isNew
+                      ? `List ${safeText(lead?.list_id)}`
+                      : `Called ${formatCallTime(lead?.last_call_date)}`}
+                  </div>
                 </div>
               </div>
             );

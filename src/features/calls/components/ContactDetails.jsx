@@ -1,26 +1,16 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { isValidPhone, normalizePhone } from "@/features/calls/lib/manualDial";
+import { useDialNumber } from "@/features/calls/hooks/useDialNumber";
 import { useDispatch, useSelector } from "react-redux";
 import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail, FileText } from "lucide-react";
-import { selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
-import { CALL_STATE, selectCallRouteParams, selectCallState, selectIsCallBusy, selectIsStringeeCall, setCallState, setCurrentCallFromDial, setIsCallbackDial } from "@/features/calls/slices/callSlice";
-import { useCallHangupMutation, useDialNextMutation, useGetMetaLeadByPhoneQuery } from "@/services";
+import { selectCurrentLead } from "@/features/calls/slices/dialSlice";
+import { CALL_STATE, selectCallRouteParams, selectCallState, selectIsCallBusy, selectIsStringeeCall, setCallState } from "@/features/calls/slices/callSlice";
+import { useCallHangupMutation, useGetMetaLeadByPhoneQuery } from "@/services";
 import RawDataCell from "@/features/reporting/components/RawDataCell";
 import { selectMaskPii } from "@/features/auth/slices/authSlice";
 import { maskEmail, maskPhone } from "@/shared/lib/mask";
 import { phoneCountry, flagUrl } from "@/shared/lib/phoneCountry";
 import { hangup as stringeeHangup } from "@/features/calls/lib/stringeePhone";
-function normalizePhone(raw) {
-  if (!raw) return "";
-  // keep + and digits
-  return String(raw).replace(/[^\d+]/g, "").trim();
-}
-
-function isValidPhone(p) {
-  // basic: must have at least 6 digits
-  const digits = String(p || "").replace(/[^\d]/g, "");
-  return digits.length >= 6;
-}
-
 // vicidial_list.entry_date arrives as an ISO timestamp through jsonable_encoder.
 // Rendered as "7 Sep 2026, 6:07 pm" — the time matters to an agent deciding how
 // fresh a lead is. Anything unparseable is shown as it came rather than as "—",
@@ -56,41 +46,6 @@ function CountryChip({ country, boxed = false }) {
   );
 }
 
-const MANUAL_DEFAULT_LEAD = {
-  phone_number: "",
-  first_name: "Manual",
-  last_name: "Call",
-  city: "—",
-  lead_id: "—",
-  entry_date: "—",
-  list_id: "—",
-};
-
-function buildManualLead(details, phone) {
-  const d = details && typeof details === "object" ? details : {};
-
-  const out = {
-    ...MANUAL_DEFAULT_LEAD,
-    ...d, // take whatever backend gives
-  };
-
-  // always override with the number the agent typed
-  out.phone_number = phone;
-
-  // ensure key fields are not empty/undefined
-  if (!out.first_name?.trim?.()) out.first_name = "Manual";
-  if (!out.last_name?.trim?.()) out.last_name = "Call";
-
-  // city can be empty => show —
-  if (!out.city?.trim?.()) out.city = "—";
-
-  // ids/dates/list should not be undefined/null
-  if (out.lead_id === null || out.lead_id === undefined || out.lead_id === "") out.lead_id = "—";
-  if (!out.entry_date) out.entry_date = "—";
-  if (out.list_id === null || out.list_id === undefined || out.list_id === "") out.list_id = "—";
-
-  return out;
-}
 function CountdownRing({ seconds, total }) {
   const r = 9;
   const circ = 2 * Math.PI * r;
@@ -132,7 +87,8 @@ function ContactDetails({inCallLogData}) {
   const isStringee = useSelector(selectIsStringeeCall);
   const canEnd = isStringee || inCallLogData;
   const [callHangup, { isLoading: isHangingUp }] = useCallHangupMutation();
-  const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
+  // Same dial as the Reporting page's Call button (hooks/useDialNumber).
+  const { dialNumber, isDialing } = useDialNumber();
   const [notes, setNotes] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const isInCall = callState === CALL_STATE.INCALL;
@@ -184,33 +140,7 @@ function ContactDetails({inCallLogData}) {
     return city ? city : "—";
   }, [lead]);
 
-  const handleManualDial = useCallback(async () => {
-    try {
-      const phone = normalizePhone(manualPhone);
-      if (!phone || !isValidPhone(phone)) {
-        alert("Please enter a valid phone number.");
-        return;
-      }
-
-      dispatch(setCallState(CALL_STATE.DIALING));
-
-      const res = await dialNext({ phone }).unwrap();
-
-      if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-        alert(res.vicidial_response);
-        dispatch(setCallState(CALL_STATE.IDLE));
-        return;
-      }
-      dispatch(setCurrentCallFromDial(res));
-      const safeLead = buildManualLead(res?.details, phone);
-      dispatch(setCurrentLead(safeLead));
-      dispatch(setIsCallbackDial(false)); // ✅ manual call
-      dispatch(setCallState(CALL_STATE.INCALL));
-    } catch (e) {
-      dispatch(setCallState(CALL_STATE.IDLE));
-      alert("Failed to dial. Please try again.");
-    }
-  }, [manualPhone, dialNext, dispatch, lead]);
+  const handleManualDial = useCallback(() => dialNumber(manualPhone), [dialNumber, manualPhone]);
 
   const handleEndCall = async () => {
     if (!isInCall && !canEnd) return;

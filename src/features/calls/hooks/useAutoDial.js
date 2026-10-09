@@ -8,6 +8,7 @@ import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/featu
 import { CALL_STATE, selectIsCallBusy, setCallState, setCurrentCallFromDial } from "@/features/calls/slices/callSlice";
 import { useDialNextMutation } from "@/services";
 import { useToast } from "@/shared/hooks/useToast";
+import { dialErrorMessage } from "@/features/calls/lib/dialError";
 
 const HOT_METAL_CAMPAIGN = "HotMetaleads";
 
@@ -67,9 +68,9 @@ export function useAutoDial() {
       dispatch(setCallState(CALL_STATE.INCALL));
       navigate("/call");
       dispatch(resetAutoDialTime());
-    } catch {
+    } catch (e) {
       dispatch(setCallState(CALL_STATE.IDLE));
-      toastError("Failed to dial next. Please try again.");
+      toastError(dialErrorMessage(e, "Failed to dial next. Please try again."));
       dispatch(resetAutoDialTime());
     }
   }, [isCallBusy, isDialing, isHotMetal, dialNext, dispatch, navigate, toastError]);

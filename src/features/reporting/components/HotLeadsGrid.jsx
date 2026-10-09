@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
-import { Loader2, Save, CheckCircle, ChevronDown, Check } from 'lucide-react';
+import { Loader2, Save, CheckCircle, ChevronDown, Check, Phone } from 'lucide-react';
 
 import {
   useUpdateHotMetaLeadMutation,
   useUpdateHotMetaLeadCustomFieldsMutation,
 } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
+import { useDialNumber } from '@/features/calls/hooks/useDialNumber';
 import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { gridTheme } from '@/features/manager-view/components/gridConfig';
@@ -231,7 +232,43 @@ function DepositedCellRenderer(params) {
   );
 }
 
+// Agents: a Call button that dials the row's number (the same dial as the call
+// page's manual box), with Save beside it only while the row has unsaved edits.
+// Admins: Save, as before.
 function ActionCellRenderer(params) {
+  const { isAdmin, canEdit, dirtySet } = params.context;
+  const row = params.data;
+  if (isAdmin) return <SaveButton params={params} />;
+  return (
+    <div className="flex items-center gap-1.5">
+      <CallButton params={params} />
+      {canEdit(row) && dirtySet.has(row.lead_id) && <SaveButton params={params} />}
+    </div>
+  );
+}
+
+function CallButton({ params }) {
+  const { onCall, callDisabled, callingPhone } = params.context;
+  const phone = params.data?.phone;
+  if (!phone) return null;
+  const isCalling = callingPhone === phone;
+  return (
+    <button
+      onClick={() => onCall(phone)}
+      disabled={callDisabled}
+      title={callDisabled && !isCalling ? 'Finish the current call first' : 'Call this client now'}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border
+        border-[hsl(var(--status-active)/0.4)] bg-[hsl(var(--status-active)/0.15)] text-[hsl(var(--status-active))]
+        hover:bg-[hsl(var(--status-active)/0.25)] transition-smooth active:scale-[0.97]
+        disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {isCalling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Phone className="w-3 h-3" />}
+      {isCalling ? 'Calling…' : 'Call'}
+    </button>
+  );
+}
+
+function SaveButton({ params }) {
   const { canEdit, dirtySet, savingId, savedSet, onSave } = params.context;
   const row = params.data;
   if (!canEdit(row)) return null;
@@ -655,8 +692,21 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
     api.refreshCells({ columns: ['__action'], force: true });
   }, [dirtySet, savingId, savedSet]);
 
+  // The agent's Call button (ActionCellRenderer): same dial as the call page.
+  const { dialNumber, disabled: callDisabled } = useDialNumber();
+  const [callingPhone, setCallingPhone] = useState(null);
+  const handleCall = useCallback(async (phone) => {
+    setCallingPhone(phone);
+    try {
+      await dialNumber(phone);
+    } finally {
+      setCallingPhone(null);
+    }
+  }, [dialNumber]);
+
   const context = useMemo(
     () => ({
+      isAdmin,
       canEdit,
       draftsRef,
       customDraftsRef,
@@ -665,9 +715,12 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
       savingId,
       savedSet,
       onSave: handleSave,
+      onCall: handleCall,
+      callDisabled,
+      callingPhone,
       theme,
     }),
-    [canEdit, markDirty, dirtySet, savingId, savedSet, handleSave, theme],
+    [isAdmin, canEdit, markDirty, dirtySet, savingId, savedSet, handleSave, handleCall, callDisabled, callingPhone, theme],
   );
 
   // Column ids whose cells are interactive (inline-edit widgets, popovers, or the Save action).
@@ -913,14 +966,15 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
       {
         headerName: 'Action',
         colId: '__action',
-        width: 110,
+        // Agents get Call (+ Save while editing), admins just Save.
+        width: isAdmin ? 110 : 170,
         pinned: 'right',
         sortable: false,
         filter: false,
         cellRenderer: ActionCellRenderer,
       },
     ];
-  }, [formFields, maskPii]);
+  }, [formFields, maskPii, isAdmin]);
 
   const defaultColDef = useMemo(
     () => ({

@@ -31,6 +31,9 @@ const callSlice = createSlice({
     showDispo: false,
     isCallbackDial : false,
     currentCall: noCall,
+    // Stringee reachability as this tab sees it (lib/stringeePhone health), and
+    // whether a dialled call is parked waiting for it to come back.
+    stringee: { status: "unknown", reason: "", waiting: false },
   },
   reducers: {
     setCallState(state, action) {
@@ -71,13 +74,22 @@ const callSlice = createSlice({
     },
     setIsCallbackDial(state,action){
       state.isCallbackDial = action.payload
-    }
+    },
+    setStringeeHealth(state, action) {
+      const { status = "unknown", reason = "" } = action.payload || {};
+      state.stringee.status = status;
+      state.stringee.reason = reason;
+    },
+    setStringeeWaiting(state, action) {
+      state.stringee.waiting = !!action.payload;
+    },
   },
 });
 
 export const {
   setCallState, openDispo, closeDispo, resetCall, setIsCallbackDial,
   setCurrentCallFromDial, setCurrentCallId, clearCurrentCall,
+  setStringeeHealth, setStringeeWaiting,
 } = callSlice.actions;
 
 export default callSlice.reducer;
@@ -85,6 +97,7 @@ export default callSlice.reducer;
 export const selectCallState = (s) => s.call.state;
 export const selectShowDispo = (s) => s.call.showDispo;
 export const selectIsCallbackDial = (s) => s.call.isCallbackDial;
+export const selectStringeeHealth = (s) => s.call.stringee;
 export const selectCurrentCall = (s) => s.call.currentCall ?? noCall;
 export const selectIsStringeeCall = (s) =>
   (s.call.currentCall?.provider ?? PROVIDER.VICIDIAL) === PROVIDER.STRINGEE;

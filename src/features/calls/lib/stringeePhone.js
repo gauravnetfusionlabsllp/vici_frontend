@@ -32,6 +32,42 @@ let audioEl = null;
 // resolved after a drop, so it cannot answer "are we still logged in?".
 let connected = false;
 
+/**
+ * Stringee itself is unreachable: the SDK will not load, login times out or is
+ * refused, the connection dropped, or makeCall never answers. Distinct from a
+ * call Stringee placed and the carrier refused - that still ends in a
+ * disposition. A dial that hits this waits for Stringee instead.
+ */
+export class StringeeDownError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "StringeeDownError";
+  }
+}
+export const isStringeeDown = (e) => e instanceof StringeeDownError;
+
+// ── Service health, as this tab sees it ─────────────────────────────────────
+// "unknown" until the first login attempt, then "up" / "down". useStringeeHealth
+// mirrors it into Redux for the banner.
+let health = { status: "unknown", reason: "" };
+const healthListeners = new Set();
+
+function setHealth(status, reason = "") {
+  if (health.status === status && health.reason === reason) return;
+  health = { status, reason };
+  healthListeners.forEach((fn) => fn(health));
+}
+export const getHealth = () => health;
+export function onHealthChange(fn) {
+  healthListeners.add(fn);
+  return () => healthListeners.delete(fn);
+}
+
+function down(message) {
+  setHealth("down", message);
+  return new StringeeDownError(message);
+}
+
 function loadSdk() {
   if (window.StringeeClient) return Promise.resolve();
   if (!sdkPromise) {
@@ -40,10 +76,12 @@ function loadSdk() {
       s.src = SDK_URL;
       s.async = true;
       s.onload = () =>
-        window.StringeeClient ? resolve() : reject(new Error("Stringee SDK did not load"));
+        window.StringeeClient ? resolve() : reject(down("Stringee SDK did not load"));
       s.onerror = () => {
         sdkPromise = null;
-        reject(new Error("Could not load the Stringee SDK"));
+        // Remove the dead tag so the next attempt can append a fresh one.
+        s.remove();
+        reject(down("Could not load the Stringee SDK"));
       };
       document.head.appendChild(s);
     });
@@ -52,14 +90,17 @@ function loadSdk() {
 }
 
 function resetClient() {
-  try {
-    client?.disconnect?.();
-  } catch {
-    /* already gone */
-  }
+  // Detach first: a deliberate disconnect must not trip the "disconnect"
+  // handler, which only reacts to the client that is still current.
+  const old = client;
   client = null;
   authPromise = null;
   connected = false;
+  try {
+    old?.disconnect?.();
+  } catch {
+    /* already gone */
+  }
 }
 
 function remoteAudio() {
@@ -94,17 +135,20 @@ export async function connect(getToken) {
 
   authPromise = new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error("Stringee login timed out"));
+      reject(down("Stringee login timed out"));
       if (client === thisClient) resetClient();
     }, AUTH_TIMEOUT_MS);
 
+    // Fires for the first login AND after every SDK reconnect, so it is also
+    // what flips the health back to "up".
     thisClient.on("authen", (res) => {
       clearTimeout(timer);
       if (res?.r === 0) {
         if (client === thisClient) connected = true;
+        setHealth("up");
         resolve(res.userId);
       } else {
-        reject(new Error(res?.message || `Stringee login failed (r=${res?.r})`));
+        reject(down(res?.message || `Stringee login failed (r=${res?.r})`));
         if (client === thisClient) resetClient();
       }
     });
@@ -113,7 +157,9 @@ export async function connect(getToken) {
   // The SDK re-authenticates by itself after a reconnect ("authen" fires again
   // and sets connected back to true). Until then the next dial logs in afresh.
   thisClient.on("disconnect", () => {
-    if (client === thisClient) connected = false;
+    if (client !== thisClient) return;
+    connected = false;
+    setHealth("down", "Connection to Stringee lost");
   });
 
   thisClient.on("requestnewtoken", async () => {
@@ -125,12 +171,20 @@ export async function connect(getToken) {
     }
   });
 
+  // Our own server signs the token. A 404 there means "not linked" - an
+  // account problem, not an outage - so it is rethrown as-is.
+  let token;
   try {
-    const { token } = await getToken();
-    thisClient.connect(token);
+    ({ token } = await getToken());
   } catch (e) {
     resetClient();
     throw e;
+  }
+  try {
+    thisClient.connect(token);
+  } catch (e) {
+    resetClient();
+    throw down(e?.message || "Could not reach Stringee");
   }
   return authPromise;
 }
@@ -140,7 +194,7 @@ export async function connect(getToken) {
  * call is accepted; every signalingstate is passed to onState(state, call).
  */
 export function dial({ from, to, custom, onState }) {
-  if (!client) return Promise.reject(new Error("Stringee is not connected"));
+  if (!client) return Promise.reject(down("Stringee is not connected"));
   if (activeCall) {
     // A leftover from a call that already ended (or never got going) must not
     // block the next one - drop it. Only a call that is really ringing or
@@ -164,7 +218,9 @@ export function dial({ from, to, custom, onState }) {
       settled = true;
       dropCall(call);
       resetClient();
-      reject(new Error("Could not reach Stringee - please dial again"));
+      // No answer at all from makeCall = the connection is dead: an outage,
+      // not a refused call, so the dial waits for Stringee instead of failing.
+      reject(down("Could not reach Stringee"));
     }, MAKECALL_TIMEOUT_MS);
 
     call.on("addremotestream", (stream) => {
