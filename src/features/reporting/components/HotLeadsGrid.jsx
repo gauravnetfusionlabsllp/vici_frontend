@@ -322,6 +322,17 @@ function SummaryCellRenderer(params) {
   return <ExpandableTextCell text={params.value} title="Call summary" theme={params.context.theme} />;
 }
 
+// Every score behind the call rating (greeting, product knowledge, ... closing) with the
+// AI's comment on each - one text block from the server's rating_breakdown.
+function RatingBreakdownCellRenderer(params) {
+  return (
+    <ExpandableTextCell
+      text={params.value} title="Rating breakdown" theme={params.context.theme}
+      width={460} maxHeight={460}
+    />
+  );
+}
+
 function TranscriptCellRenderer(params) {
   // Wider and taller than the summary popover: it holds a whole two-way conversation.
   return (
@@ -728,7 +739,8 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
   const INTERACTIVE_COLS = useMemo(
     () => new Set([
       'how_contacted', 'response', 'client_registered', 'client_deposited',
-      'call_rating', 'recording_link', 'raw_data', 'call_summary', 'transcript_text', '__action',
+      'call_rating', 'rating_breakdown',
+      'recording_link', 'raw_data', 'call_summary', 'transcript_text', '__action',
     ]),
     [],
   );
@@ -930,6 +942,14 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         filter: false,
          cellClass: 'flex items-center',
         cellRenderer: RatingCellRenderer,
+      },
+      {
+        headerName: 'Rating Breakdown',
+        field: 'rating_breakdown',
+        width: 220,
+        sortable: false,
+        filter: false,
+        cellRenderer: RatingBreakdownCellRenderer,
       },
       {
         headerName: 'Call Summary',
