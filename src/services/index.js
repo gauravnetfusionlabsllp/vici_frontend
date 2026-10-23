@@ -19,3 +19,4 @@ export * from './endpoints/whatsappAutomation';
 export * from './endpoints/doubleTick';
 export * from './endpoints/gsm';
 export * from './endpoints/stringeeAgents';
+export * from './endpoints/manualAnalysis';

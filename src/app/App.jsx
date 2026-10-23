@@ -19,6 +19,7 @@ const UnauthorizedPage   = lazy(() => import('@/features/auth/UnauthorizedPage')
 const CallPage           = lazy(() => import('@/features/calls/CallPage'));
 const AgentMailPage      = lazy(() => import('@/features/agent-mail/AgentMailPage'));
 const ReportingPage      = lazy(() => import('@/features/reporting/ReportingPage'));
+const ManualAnalysisPage = lazy(() => import('@/features/manual-analysis/ManualAnalysisPage'));
 const LeadManagementPage = lazy(() => import('@/features/lead-management/LeadManagementPage'));
 const ManagerViewPage    = lazy(() => import('@/features/manager-view/ManagerViewPage'));
 const WhatsAppAdminPage  = lazy(() => import('@/features/whatsapp-admin/WhatsAppAdminPage'));
@@ -58,6 +59,7 @@ function App() {
                 <Route path="/double-tick"       element={<DoubleTickPage />} />
                 <Route path="/gsm-status"        element={<GsmStatusPage />} />
                 <Route path="/stringee-agents"   element={<StringeeAgentsPage />} />
+                <Route path="/reporting/manual-analysis" element={<ManualAnalysisPage />} />
               </Route>
 
               <Route element={<PrivateRoute allowedAdmin={false} />}>

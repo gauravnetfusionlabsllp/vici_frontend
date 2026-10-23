@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bot,
   CheckCheck,
+  FileAudio,
   Gauge,
   Inbox,
   Link2,
@@ -30,6 +31,7 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/double-tick",
   "/gsm-status",
   "/stringee-agents",
+  "/reporting/manual-analysis",
 ];
 
 /**
@@ -84,7 +86,10 @@ export function getNavGroups({ isAdmin, isWhatsappAdmin }) {
       },
       {
         label: "Reports",
-        items: [{ name: "Reporting", path: "/reporting", icon: BarChart3 }],
+        items: [
+          { name: "Reporting", path: "/reporting", icon: BarChart3, end: true },
+          { name: "Manual Analysis", path: "/reporting/manual-analysis", icon: FileAudio },
+        ],
       },
     ];
   }

@@ -24,6 +24,7 @@ export const dashboardApi = createApi({
     'DoubleTick',
     'Gsm',
     'StringeeAgents',
+    'ManualAnalysis',
   ],
   endpoints: () => ({}),
 });
